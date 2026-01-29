@@ -1,8 +1,9 @@
 import '../../data/models/appliance_model.dart';
 import '../../data/models/bill_model.dart';
 import '../../data/models/tariff_model.dart';
+import '../../logic/billing/billing_engine.dart';
+import '../../logic/billing/slab_model.dart';
 import '../../logic/calculator/carbon_calculator.dart';
-import '../../logic/calculator/cost_calculator.dart';
 import '../../logic/calculator/energy_calculator.dart';
 import '../../logic/insights/recommendation_engine.dart';
 import '../../logic/wastage/wastage_detector.dart';
@@ -62,13 +63,17 @@ class AnalysisController {
     required BillModel bill,
     required List<ApplianceModel> appliances,
     required TariffModel tariff,
+    required String connectionType,
   }) {
+    final type = connectionTypeFromString(connectionType);
+    final billing = BillingEngine().calculateBill(
+      connectionType: type,
+      units: bill.unitsConsumed,
+    );
+
     final totalEstimated = EnergyCalculator.totalApplianceKWh(appliances);
     final scale = totalEstimated > 0 ? (bill.unitsConsumed / totalEstimated) : 0.0;
-
-    // Effective unit price from tariff for the bill units (keeps tier logic consistent).
-    final billCostFromTariff = CostCalculator.costForUnits(bill.unitsConsumed, tariff);
-    final effectiveRate = bill.unitsConsumed > 0 ? (billCostFromTariff / bill.unitsConsumed) : tariff.baseRate;
+    final effectiveRate = billing.effectiveRatePerUnit;
 
     final wastage = WastageDetector.detect(billUnitsKWh: bill.unitsConsumed, appliances: appliances);
     final wastageCost = wastage.unaccountedKWh * effectiveRate;

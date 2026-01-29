@@ -7,7 +7,7 @@ class AppStrings {
   static const configTitle = 'Appliance Configuration';
   static const analysisTitle = 'Analysis';
   static const historyTitle = 'Bill History & Trends';
-  static const settingsTitle = 'Settings & Tariffs';
+  static const settingsTitle = 'Tariff Overview';
 
   static const calculateBreakdown = 'Calculate Breakdown';
 }

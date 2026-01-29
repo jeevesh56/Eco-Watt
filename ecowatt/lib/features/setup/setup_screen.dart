@@ -31,7 +31,7 @@ class _SetupFormState extends State<_SetupForm> {
   final _valueCtrl = TextEditingController();
 
   bool _amountMode = true;
-  String _homeType = 'apartment';
+  String _connectionType = 'residential';
   int _occupants = 2;
   bool _saving = false;
 
@@ -103,7 +103,7 @@ class _SetupFormState extends State<_SetupForm> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Household Profile',
+                        'Connection Type',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSizes.s12),
@@ -111,22 +111,16 @@ class _SetupFormState extends State<_SetupForm> {
                         spacing: 8,
                         children: [
                           ToggleChip<String>(
-                            value: 'apartment',
-                            groupValue: _homeType,
-                            label: 'Apartment',
-                            onChanged: (v) => setState(() => _homeType = v),
+                            value: 'residential',
+                            groupValue: _connectionType,
+                            label: 'Residential',
+                            onChanged: (v) => setState(() => _connectionType = v),
                           ),
                           ToggleChip<String>(
-                            value: 'house',
-                            groupValue: _homeType,
-                            label: 'House',
-                            onChanged: (v) => setState(() => _homeType = v),
-                          ),
-                          ToggleChip<String>(
-                            value: 'villa',
-                            groupValue: _homeType,
-                            label: 'Villa',
-                            onChanged: (v) => setState(() => _homeType = v),
+                            value: 'commercial',
+                            groupValue: _connectionType,
+                            label: 'Commercial',
+                            onChanged: (v) => setState(() => _connectionType = v),
                           ),
                         ],
                       ),
@@ -175,7 +169,7 @@ class _SetupFormState extends State<_SetupForm> {
                       final value = double.parse(_valueCtrl.text.trim());
                       await controller.saveSetup(
                         scope: scope,
-                        homeType: _homeType,
+                        connectionType: _connectionType,
                         occupants: _occupants,
                         inputIsAmount: _amountMode,
                         inputValue: value,

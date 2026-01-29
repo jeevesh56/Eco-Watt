@@ -46,6 +46,8 @@ class _AnalysisBody extends StatelessWidget {
     final bill = state.bills.bills.firstWhere((b) => b.billId == billId);
     final appliances = state.appliances.items;
     final tariff = state.settings.tariff;
+    final connectionType =
+        state.settings.user?.connectionType ?? 'residential';
 
     if (appliances.isEmpty) {
       return AppCard(
@@ -57,7 +59,12 @@ class _AnalysisBody extends StatelessWidget {
     }
 
     final controller = AnalysisController();
-    final result = controller.compute(bill: bill, appliances: appliances, tariff: tariff);
+    final result = controller.compute(
+      bill: bill,
+      appliances: appliances,
+      tariff: tariff,
+      connectionType: connectionType,
+    );
     final currency = tariff.currency;
 
     return ListView(

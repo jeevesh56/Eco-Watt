@@ -96,6 +96,8 @@ class HistoryScreen extends StatelessWidget {
     final bill = state.bills.bills.firstWhere((b) => b.billId == billId);
     final appliances = state.appliances.items;
     final tariff = state.settings.tariff;
+    final connectionType =
+        state.settings.user?.connectionType ?? 'residential';
 
     if (appliances.isEmpty) {
       showDialog<void>(
@@ -111,7 +113,12 @@ class HistoryScreen extends StatelessWidget {
       return;
     }
 
-    final result = AnalysisController().compute(bill: bill, appliances: appliances, tariff: tariff);
+    final result = AnalysisController().compute(
+      bill: bill,
+      appliances: appliances,
+      tariff: tariff,
+      connectionType: connectionType,
+    );
     final currency = tariff.currency;
 
     showDialog<void>(

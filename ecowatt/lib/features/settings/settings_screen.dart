@@ -4,11 +4,8 @@ import '../../app/state_container.dart';
 import '../../core/constants/sizes.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
-import '../../core/utils/validators.dart';
-import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../data/models/tariff_model.dart';
-import 'settings_controller.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -32,7 +29,6 @@ class _SettingsBodyState extends State<_SettingsBody> {
   final _providerCtrl = TextEditingController();
   String _currency = '₹';
   final List<TariffTierModel> _tiers = [];
-  bool _saving = false;
 
   @override
   void dispose() {
@@ -55,7 +51,6 @@ class _SettingsBodyState extends State<_SettingsBody> {
 
   @override
   Widget build(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<AppStateScope>();
     final state = AppStateScope.of(context);
     final current = state.settings.tariff;
 
@@ -77,25 +72,23 @@ class _SettingsBodyState extends State<_SettingsBody> {
                       TextFormField(
                         controller: _providerCtrl,
                         decoration: const InputDecoration(labelText: 'Provider name'),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        enabled: false,
                       ),
                       const SizedBox(height: AppSizes.s12),
                       TextFormField(
                         controller: _rateCtrl,
                         decoration: const InputDecoration(labelText: 'Base rate (per kWh)'),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        validator: Validators.requiredNum,
+                        enabled: false,
                       ),
                       const SizedBox(height: AppSizes.s12),
                       DropdownButtonFormField<String>(
-                        initialValue: _currency,
+                        value: _currency,
                         decoration: const InputDecoration(labelText: 'Currency'),
                         items: const [
                           DropdownMenuItem(value: '₹', child: Text('₹ (INR)')),
-                          DropdownMenuItem(value: r'$', child: Text(r'$ (USD)')),
-                          DropdownMenuItem(value: '€', child: Text('€ (EUR)')),
                         ],
-                        onChanged: (v) => setState(() => _currency = v ?? '₹'),
+                        onChanged: null,
                       ),
                     ],
                   ),
@@ -109,14 +102,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
                         children: [
                           Text('Tiered slabs (optional)', style: Theme.of(context).textTheme.titleMedium),
                           const Spacer(),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _tiers.add(const TariffTierModel(upToKWh: 100, rate: 8.0));
-                              });
-                            },
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
+                          const SizedBox.shrink(),
                         ],
                       ),
                       const SizedBox(height: AppSizes.s8),
@@ -125,9 +111,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
                           'No slabs. Base rate will be used for all units.',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
-                      ..._tiers.asMap().entries.map((entry) {
-                        final i = entry.key;
-                        final tier = entry.value;
+                      ..._tiers.map((tier) {
                         final upCtrl = TextEditingController(text: tier.upToKWh.toStringAsFixed(0));
                         final rateCtrl = TextEditingController(text: tier.rate.toStringAsFixed(2));
                         return Padding(
@@ -139,12 +123,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
                                   controller: upCtrl,
                                   decoration: const InputDecoration(labelText: 'Up to (kWh)'),
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  validator: Validators.requiredNum,
-                                  onChanged: (v) {
-                                    final n = double.tryParse(v);
-                                    if (n == null) return;
-                                    _tiers[i] = TariffTierModel(upToKWh: n, rate: _tiers[i].rate);
-                                  },
+                                  enabled: false,
                                 ),
                               ),
                               const SizedBox(width: AppSizes.s12),
@@ -153,18 +132,10 @@ class _SettingsBodyState extends State<_SettingsBody> {
                                   controller: rateCtrl,
                                   decoration: const InputDecoration(labelText: 'Rate'),
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  validator: Validators.requiredNum,
-                                  onChanged: (v) {
-                                    final n = double.tryParse(v);
-                                    if (n == null) return;
-                                    _tiers[i] = TariffTierModel(upToKWh: _tiers[i].upToKWh, rate: n);
-                                  },
+                                  enabled: false,
                                 ),
                               ),
-                              IconButton(
-                                onPressed: () => setState(() => _tiers.removeAt(i)),
-                                icon: const Icon(Icons.delete_outline),
-                              ),
+                              const SizedBox.shrink(),
                             ],
                           ),
                         );
@@ -179,32 +150,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
                   ),
                 ),
                 const SizedBox(height: AppSizes.s12),
-                AppButton(
-                  label: 'Save Settings',
-                  isLoading: _saving,
-                  onPressed: scope == null
-                      ? null
-                      : () async {
-                          if (!_formKey.currentState!.validate()) return;
-                          setState(() => _saving = true);
-                          try {
-                            final tariff = TariffModel(
-                              providerName: _providerCtrl.text.trim(),
-                              baseRate: double.parse(_rateCtrl.text.trim()),
-                              tieredPricing: _tiers.toList(),
-                              currency: _currency,
-                            );
-                            final messenger = ScaffoldMessenger.of(context);
-                            await SettingsController().saveTariff(scope, tariff);
-                            if (!mounted) return;
-                            messenger.showSnackBar(
-                              const SnackBar(content: Text('Settings saved. Costs will recalculate automatically.')),
-                            );
-                          } finally {
-                            if (mounted) setState(() => _saving = false);
-                          }
-                        },
-                ),
+                const SizedBox.shrink(),
               ],
             ),
           ),
@@ -213,4 +159,5 @@ class _SettingsBodyState extends State<_SettingsBody> {
     );
   }
 }
+
 

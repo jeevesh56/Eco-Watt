@@ -30,6 +30,7 @@ class ApplianceDetailScreen extends StatelessWidget {
       bill: bill,
       appliances: state.appliances.items,
       tariff: state.settings.tariff,
+      connectionType: state.settings.user?.connectionType ?? 'residential',
     );
     final row = analysis.breakdown.firstWhere((b) => b.appliance.applianceId == applianceId);
 
