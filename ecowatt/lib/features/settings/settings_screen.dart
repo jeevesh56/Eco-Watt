@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/state_container.dart';
+import '../../app/routes.dart';
 import '../../core/constants/sizes.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
@@ -55,7 +56,16 @@ class _SettingsBodyState extends State<_SettingsBody> {
     final current = state.settings.tariff;
 
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.settingsTitle)),
+      appBar: AppBar(
+        title: const Text(AppStrings.settingsTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.login),
+            tooltip: 'Sign in / Register',
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.login),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.s16),
@@ -83,7 +93,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
                       ),
                       const SizedBox(height: AppSizes.s12),
                       DropdownButtonFormField<String>(
-                        value: _currency,
+                        initialValue: _currency,
                         decoration: const InputDecoration(labelText: 'Currency'),
                         items: const [
                           DropdownMenuItem(value: '₹', child: Text('₹ (INR)')),

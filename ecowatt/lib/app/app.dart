@@ -13,7 +13,7 @@ class EcoWattApp extends StatelessWidget {
       child: MaterialApp(
         title: 'ECOWATT',
         theme: AppTheme.light,
-        initialRoute: AppRoutes.root,
+        initialRoute: AppRoutes.login,
         onGenerateRoute: AppRoutes.onGenerateRoute,
         debugShowCheckedModeBanner: false,
       ),

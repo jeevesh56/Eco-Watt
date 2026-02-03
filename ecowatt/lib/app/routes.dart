@@ -7,6 +7,7 @@ import '../features/history/history_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/bottom_nav_shell.dart';
 import '../features/setup/setup_screen.dart';
+import '../features/auth/login_register_page.dart';
 
 /// Centralized named routes for the whole app.
 class AppRoutes {
@@ -18,6 +19,7 @@ class AppRoutes {
   static const applianceDetail = '/appliance-detail';
   static const history = '/history';
   static const settings = '/settings';
+  static const login = '/login';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final routeName = settings.name;
@@ -40,6 +42,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const HistoryScreen());
       case AppRoutes.settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case login:
+        return MaterialPageRoute(builder: (_) => const LoginRegisterPage());
       default:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(
