@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 /// Central place for the app color palette.
 /// UI should only reference these constants (not hard-code colors).
 class AppColors {
-  static const greenPrimary = Color(0xFF2E7D32);
-  static const greenAccent = Color(0xFF66BB6A);
+  // Updated to match global design token #1FB59A (teal/green)
+  static const greenPrimary = Color(0xFF1FB59A);
+  static const greenAccent = Color(0xFF9EEBD6);
   static const background = Color(0xFFF4FBF5);
   static const surface = Colors.white;
 

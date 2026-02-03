@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../../app/state_container.dart';
+import '../../core/constants/colors.dart';
 import '../../core/constants/sizes.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
@@ -67,6 +69,31 @@ class _AnalysisBody extends StatelessWidget {
     );
     final currency = tariff.currency;
 
+    // Build pie chart sections from top appliances
+    final totalKwh = result.breakdown.fold<double>(0, (s, b) => s + b.normalizedKWh);
+    final chartItems = result.breakdown.take(6).toList();
+    final sectionColors = [
+      Theme.of(context).colorScheme.primary,
+      Theme.of(context).colorScheme.secondary,
+      AppColors.warning,
+      AppColors.danger,
+      Colors.tealAccent.shade200,
+      Colors.grey.shade300,
+    ];
+
+    final sections = <PieChartSectionData>[];
+    for (var i = 0; i < chartItems.length; i++) {
+      final item = chartItems[i];
+      final value = totalKwh > 0 ? item.normalizedKWh / totalKwh * 100 : 0;
+      sections.add(PieChartSectionData(
+        value: item.normalizedKWh,
+        title: '${value.toStringAsFixed(0)}%',
+        color: sectionColors[i % sectionColors.length],
+        radius: 50,
+        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+      ));
+    }
+
     return ListView(
       children: [
         AppCard(
@@ -75,8 +102,57 @@ class _AnalysisBody extends StatelessWidget {
             children: [
               Text('This month', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSizes.s8),
-              Text('Units: ${Formatter.kwh(bill.unitsConsumed)}'),
-              Text('Estimated cost (tariff): ${Formatter.currency(CostCalculator.costForUnits(bill.unitsConsumed, tariff), symbol: currency)}'),
+              Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Units: ${Formatter.kwh(bill.unitsConsumed)}'),
+                      Text('Estimated cost (tariff): ${Formatter.currency(CostCalculator.costForUnits(bill.unitsConsumed, tariff), symbol: currency)}'),
+                    ],
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pushNamed('/month-review'),
+                    child: const Text('Month in Review'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSizes.s12),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Energy breakdown', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: AppSizes.s12),
+              SizedBox(
+                height: 180,
+                child: PieChart(
+                  PieChartData(
+                    sections: sections,
+                    centerSpaceRadius: 36,
+                    sectionsSpace: 4,
+                    borderData: FlBorderData(show: false),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSizes.s12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: chartItems.map((b) {
+                  final idx = chartItems.indexOf(b);
+                  final color = sectionColors[idx % sectionColors.length];
+                  final pct = totalKwh > 0 ? (b.normalizedKWh / totalKwh * 100).toStringAsFixed(0) : '0';
+                  return Chip(
+                    backgroundColor: color.withOpacity(0.12),
+                    label: Text('${b.appliance.name} • $pct%'),
+                  );
+                }).toList(),
+              ),
             ],
           ),
         ),
@@ -140,6 +216,11 @@ class _AnalysisBody extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text('- ${r.title}: ${r.detail}'),
                   )),
+              const SizedBox(height: AppSizes.s12),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pushNamed('/savings'),
+                child: const Text('Optimize Consumption'),
+              ),
             ],
           ),
         ),

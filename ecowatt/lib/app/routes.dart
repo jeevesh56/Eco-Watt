@@ -5,6 +5,8 @@ import '../features/appliance_detail/appliance_detail_screen.dart';
 import '../features/configuration/appliance_config_screen.dart';
 import '../features/history/history_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/month_review/month_review_screen.dart';
+import '../features/savings/savings_screen.dart';
 import '../features/shell/bottom_nav_shell.dart';
 import '../features/setup/setup_screen.dart';
 import '../features/auth/login_register_page.dart';
@@ -19,6 +21,8 @@ class AppRoutes {
   static const applianceDetail = '/appliance-detail';
   static const history = '/history';
   static const settings = '/settings';
+  static const monthReview = '/month-review';
+  static const savings = '/savings';
   static const login = '/login';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -42,6 +46,10 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const HistoryScreen());
       case AppRoutes.settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case AppRoutes.monthReview:
+        return MaterialPageRoute(builder: (_) => const MonthReviewScreen());
+      case AppRoutes.savings:
+        return MaterialPageRoute(builder: (_) => const SavingsScreen());
       case login:
         return MaterialPageRoute(builder: (_) => const LoginRegisterPage());
       default:

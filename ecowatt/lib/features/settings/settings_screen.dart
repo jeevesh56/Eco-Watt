@@ -6,7 +6,9 @@ import '../../core/constants/sizes.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_button.dart';
 import '../../data/models/tariff_model.dart';
+import 'settings_controller.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -82,14 +84,16 @@ class _SettingsBodyState extends State<_SettingsBody> {
                       TextFormField(
                         controller: _providerCtrl,
                         decoration: const InputDecoration(labelText: 'Provider name'),
-                        enabled: false,
+                        enabled: true,
+                        onChanged: (v) {},
                       ),
                       const SizedBox(height: AppSizes.s12),
                       TextFormField(
                         controller: _rateCtrl,
                         decoration: const InputDecoration(labelText: 'Base rate (per kWh)'),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        enabled: false,
+                        enabled: true,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                       ),
                       const SizedBox(height: AppSizes.s12),
                       DropdownButtonFormField<String>(
@@ -98,7 +102,25 @@ class _SettingsBodyState extends State<_SettingsBody> {
                         items: const [
                           DropdownMenuItem(value: '₹', child: Text('₹ (INR)')),
                         ],
-                        onChanged: null,
+                        onChanged: (v) => setState(() => _currency = v ?? '₹'),
+                      ),
+                      const SizedBox(height: AppSizes.s12),
+                      AppButton(
+                        label: 'Save',
+                        onPressed: () async {
+                          if (!_formKey.currentState!.validate()) return;
+                          final tariff = TariffModel(
+                            providerName: _providerCtrl.text.trim(),
+                            baseRate: double.tryParse(_rateCtrl.text.trim()) ?? 0.0,
+                            currency: _currency,
+                            tieredPricing: _tiers,
+                          );
+                          final scope = AppStateScope.of(context);
+                          final messenger = ScaffoldMessenger.of(context);
+                          await SettingsController().saveTariff(scope, tariff);
+                          if (!mounted) return;
+                          messenger.showSnackBar(const SnackBar(content: Text('Tariff saved')));
+                        },
                       ),
                     ],
                   ),

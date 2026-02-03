@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../app/state_container.dart';
+import 'package:fl_chart/fl_chart.dart';
+
 import '../../core/constants/sizes.dart';
+import '../../core/constants/colors.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
 import '../../core/widgets/app_card.dart';
@@ -37,6 +40,43 @@ class HistoryScreen extends StatelessWidget {
                       child: Text(
                         'Tap any month to view breakdown. Trends are based on month-to-month unit changes.',
                         style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.s12),
+                    // 6-month bar trend chart
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('6-month trend', style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: AppSizes.s12),
+                          SizedBox(
+                            height: 160,
+                            child: BarChart(
+                              BarChartData(
+                                barGroups: trends.reversed.take(6).toList().asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final trend = entry.value as dynamic; // BillTrend
+                                  return BarChartGroupData(
+                                    x: index,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: trend.bill.unitsConsumed,
+                                        color: index == 0 ? Theme.of(context).colorScheme.primary : AppColors.greenAccent,
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                                gridData: FlGridData(show: false),
+                                borderData: FlBorderData(show: false),
+                                titlesData: FlTitlesData(
+                                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+                                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: AppSizes.s12),
