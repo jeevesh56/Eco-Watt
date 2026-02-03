@@ -92,6 +92,7 @@ class _SetupFormState extends State<_SetupForm> {
                           labelText: _amountMode
                               ? 'Bill amount ($currency)'
                               : 'Units consumed (kWh)',
+                          prefixIcon: _amountMode ? const Icon(Icons.currency_rupee) : null,
                         ),
                       ),
                     ],
