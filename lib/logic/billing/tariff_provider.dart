@@ -14,14 +14,12 @@ class TariffProvider {
     }
   }
 
-  /// Residential tariff profile matching the slab structure described
-  /// in the app UX (used in Energy Setup estimations).
-  ///
-  /// Slabs are defined as inclusive ranges [start, end]:
-  /// - 1–100 units: subsidised (treated as free)
-  /// - 101–200: rate 2.35
-  /// - 201–400: rate 4.70
-  /// - 401–500: rate 6.30
+<<<<<<< HEAD
+  /// Residential tariff profile matching the slab structure:
+  /// - 1–100 units: ₹0.00/unit (subsidised)
+  /// - 101–200 units: ₹2.35/unit
+  /// - 201–400 units: ₹4.70/unit
+  /// - 401–500 units: ₹6.30/unit
   static const TariffProfile _residentialGeneric = TariffProfile(
     connectionType: ConnectionType.residential,
     regionCode: 'IN-GEN',
@@ -29,7 +27,7 @@ class TariffProvider {
       Slab(
         startInclusive: 1,
         endInclusive: 100,
-        ratePerUnit: 0,
+        ratePerUnit: 0.0,
         isSubsidised: true,
       ),
       Slab(

@@ -382,4 +382,3 @@ class _BlurCircle extends StatelessWidget {
   }
 }
 
-

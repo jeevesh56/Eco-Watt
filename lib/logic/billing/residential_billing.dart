@@ -1,9 +1,10 @@
+import 'dart:math';
+
 import 'billing_result.dart';
 import 'slab_model.dart';
 
 /// Residential billing with slab-based subsidy.
-/// 
-/// Uses inclusive formula: Units_i = max(0, min(units, slab.end) - slab.start + 1)
+/// Uses formula: Units_i = max(0, min(U, End_i) - Start_i), Cost_i = Units_i × Rate_i, Total = Σ Cost_i
 BillingResult calculateResidentialBill({
   required TariffProfile profile,
   required double units,
@@ -12,32 +13,28 @@ BillingResult calculateResidentialBill({
   final charges = <SlabCharge>[];
   double total = profile.fixedCharge.toDouble();
 
-  // Calculate units and cost for each slab using inclusive formula
-  // Cumulative billing: charge for all units up to current consumption
-  for (var i = 0; i < slabs.length; i++) {
-    final slab = slabs[i];
+  for (final slab in slabs) {
     final start = slab.startInclusive;
     final end = slab.endInclusive;
     
-    // Skip slabs that haven't been reached
-    if (units < start) continue;
+    // Units_i = max(0, min(U, End_i) - Start_i)
+    // For inclusive ranges [Start_i, End_i], add 1 to account for inclusive end
+    final unitsInSlab = units >= start
+        ? (min(units, end) - start + 1.0).clamp(0.0, double.infinity)
+        : 0.0;
     
-    // Inclusive formula: Units_i = max(0, min(units, slab.end) - slab.start + 1)
-    // If units fall within this slab: units - start + 1
-    // If units exceed this slab: end - start + 1 (full slab)
-    final unitsInSlab = units <= end
-        ? (units - start + 1.0).clamp(0.0, double.infinity)
-        : (end - start + 1.0);
+    // Cost_i = Units_i × Rate_i (or 0 if subsidised)
+    final amount = slab.isSubsidised ? 0.0 : unitsInSlab * slab.ratePerUnit;
     
-    if (unitsInSlab <= 0) continue;
-
-    final amount = slab.isSubsidised ? 0 : unitsInSlab * slab.ratePerUnit;
-    charges.add(SlabCharge(
-      slab: slab,
-      unitsInSlab: unitsInSlab,
-      amount: amount.toDouble(),
-    ));
-
+    if (unitsInSlab > 0) {
+      charges.add(SlabCharge(
+        slab: slab,
+        unitsInSlab: unitsInSlab,
+        amount: amount,
+      ));
+    }
+    
+    // Total Bill = Σ Cost_i
     total += amount;
   }
 
