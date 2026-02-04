@@ -14,22 +14,19 @@ class TariffProvider {
     }
   }
 
-  /// Residential tariff profile matching the slab structure described
-  /// in the app UX (used in Energy Setup estimations).
-  ///
-  /// Demo slab model aligned with ECOWATT test expectations:
-  /// - 0–100 units: subsidised (treated as free)
-  /// - 101–200: low rate
-  /// - 201–400: higher rate
-  /// - 401–∞: highest rate
+  /// Residential tariff profile matching the slab structure:
+  /// - 1–100 units: ₹0.00/unit (subsidised)
+  /// - 101–200 units: ₹2.35/unit
+  /// - 201–400 units: ₹4.70/unit
+  /// - 401–500+ units: ₹6.30/unit
   static const TariffProfile _residentialGeneric = TariffProfile(
     connectionType: ConnectionType.residential,
     regionCode: 'IN-GEN',
     slabs: [
       Slab(
-        startInclusive: 0,
+        startInclusive: 1,
         endInclusive: 100,
-        ratePerUnit: 0,
+        ratePerUnit: 0.0,
         isSubsidised: true,
       ),
       Slab(

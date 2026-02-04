@@ -1,36 +1,41 @@
+import 'dart:math';
+
 import 'billing_result.dart';
 import 'slab_model.dart';
 
 /// Commercial billing – non-subsidised, higher-rate, possible fixed charges.
+/// Uses formula: Units_i = max(0, min(U, End_i) - Start_i), Cost_i = Units_i × Rate_i, Total = Σ Cost_i
 BillingResult calculateCommercialBill({
   required TariffProfile profile,
   required double units,
 }) {
   final slabs = profile.slabs;
   final charges = <SlabCharge>[];
-  double remaining = units;
   double total = profile.fixedCharge.toDouble();
 
-  for (var i = 0; i < slabs.length; i++) {
-    final slab = slabs[i];
-    if (remaining <= 0) break;
+  for (final slab in slabs) {
     final start = slab.startInclusive;
     final end = slab.endInclusive;
-    if (units < start) continue;
-
-    // Same slab-span logic as residential billing.
-    final slabSpan = i == 0 ? (end - start) : (end - start + 1.0);
-    final eligibleUnits = (remaining < slabSpan) ? remaining : slabSpan;
-    final amount = eligibleUnits * slab.ratePerUnit;
-
-    charges.add(SlabCharge(
-      slab: slab,
-      unitsInSlab: eligibleUnits.toDouble(),
-      amount: amount.toDouble(),
-    ));
-
+    
+    // Units_i = max(0, min(U, End_i) - Start_i)
+    // For inclusive ranges [Start_i, End_i], add 1 to account for inclusive end
+    final unitsInSlab = units >= start
+        ? (min(units, end) - start + 1.0).clamp(0.0, double.infinity)
+        : 0.0;
+    
+    // Cost_i = Units_i × Rate_i
+    final amount = unitsInSlab * slab.ratePerUnit;
+    
+    if (unitsInSlab > 0) {
+      charges.add(SlabCharge(
+        slab: slab,
+        unitsInSlab: unitsInSlab,
+        amount: amount,
+      ));
+    }
+    
+    // Total Bill = Σ Cost_i
     total += amount;
-    remaining -= eligibleUnits;
   }
 
   final effectiveRate = units > 0 ? total / units : 0;
