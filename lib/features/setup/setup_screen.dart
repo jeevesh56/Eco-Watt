@@ -61,6 +61,8 @@ class _SetupFormState extends State<_SetupForm> {
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.setupTitle)),
+      // Keep the bottom navigation dashboard visible while in Energy Setup
+      // by embedding content in a Column; BottomNavShell provides the nav bar.
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.s16),

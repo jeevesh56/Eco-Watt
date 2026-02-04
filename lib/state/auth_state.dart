@@ -20,12 +20,12 @@ class AuthState extends ChangeNotifier {
   }
 
   Future<RegisterResult> registerUser({
-    required String email,
+    required String username,
     required String password,
     required String confirmPassword,
   }) async {
     final result = await _service.registerUser(
-      email: email,
+      username: username,
       password: password,
       confirmPassword: confirmPassword,
     );
@@ -34,10 +34,11 @@ class AuthState extends ChangeNotifier {
   }
 
   Future<LoginResult> loginUser({
-    required String email,
+    required String username,
     required String password,
   }) async {
-    final result = await _service.loginUser(email: email, password: password);
+    final result =
+        await _service.loginUser(username: username, password: password);
     if (result.ok) {
       _currentUserId = result.userId;
       notifyListeners();

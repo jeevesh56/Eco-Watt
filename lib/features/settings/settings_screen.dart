@@ -126,55 +126,9 @@ class _SettingsBodyState extends State<_SettingsBody> {
                   ),
                 ),
                 const SizedBox(height: AppSizes.s12),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text('Tiered slabs (optional)', style: Theme.of(context).textTheme.titleMedium),
-                          const Spacer(),
-                          const SizedBox.shrink(),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.s8),
-                      if (_tiers.isEmpty)
-                        Text(
-                          'No slabs. Base rate will be used for all units.',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ..._tiers.map((tier) {
-                        final upCtrl = TextEditingController(text: tier.upToKWh.toStringAsFixed(0));
-                        final rateCtrl = TextEditingController(text: tier.rate.toStringAsFixed(2));
-                        return Padding(
-                          padding: const EdgeInsets.only(top: AppSizes.s12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: upCtrl,
-                                  decoration: const InputDecoration(labelText: 'Up to (kWh)'),
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  enabled: false,
-                                ),
-                              ),
-                              const SizedBox(width: AppSizes.s12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: rateCtrl,
-                                  decoration: const InputDecoration(labelText: 'Rate'),
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  enabled: false,
-                                ),
-                              ),
-                              const SizedBox.shrink(),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
+                // Tiered slabs are intentionally kept hidden from the UI.
+                // The underlying values are still used by the calculator via `SettingsState`.
+                const SizedBox.shrink(),
                 const SizedBox(height: AppSizes.s12),
                 AppCard(
                   child: Text(

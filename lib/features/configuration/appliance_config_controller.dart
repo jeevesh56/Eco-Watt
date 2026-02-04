@@ -43,6 +43,16 @@ class ApplianceConfigController {
     final state = scope.notifier!;
     await state.appliances.upsert(appliance.copyWith(starRating: stars.clamp(1, 5)));
   }
+
+  Future<void> updateCount(
+    AppStateScope scope,
+    ApplianceModel appliance,
+    int count,
+  ) async {
+    final state = scope.notifier!;
+    final safe = count.clamp(1, 20);
+    await state.appliances.upsert(appliance.copyWith(count: safe));
+  }
 }
 
 

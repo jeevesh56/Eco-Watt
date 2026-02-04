@@ -70,9 +70,22 @@ class _AnalysisBody extends StatelessWidget {
     );
     final currency = tariff.currency;
 
-    // Build pie chart sections from top appliances
-    final totalKwh = result.breakdown.fold<double>(0, (s, b) => s + b.normalizedKWh);
-    final chartItems = result.breakdown.take(6).toList();
+    // Build pie chart sections from appliances, aggregating "Others" for clarity.
+    final totalKwh =
+        result.breakdown.fold<double>(0, (s, b) => s + b.normalizedKWh);
+    final sortedBreakdown = [...result.breakdown]
+      ..sort((a, b) => b.normalizedKWh.compareTo(a.normalizedKWh));
+    final top = sortedBreakdown.take(5).toList();
+    final others = sortedBreakdown.skip(5).toList();
+    final chartItems = <dynamic>[...top];
+    if (others.isNotEmpty) {
+      final otherKwh =
+          others.fold<double>(0, (s, b) => s + b.normalizedKWh);
+      chartItems.add({
+        'label': 'Others',
+        'kwh': otherKwh,
+      });
+    }
     final sectionColors = [
       Theme.of(context).colorScheme.primary,
       Theme.of(context).colorScheme.secondary,
@@ -85,14 +98,29 @@ class _AnalysisBody extends StatelessWidget {
     final sections = <PieChartSectionData>[];
     for (var i = 0; i < chartItems.length; i++) {
       final item = chartItems[i];
-      final value = totalKwh > 0 ? item.normalizedKWh / totalKwh * 100 : 0;
-      sections.add(PieChartSectionData(
-        value: item.normalizedKWh,
-        title: '${value.toStringAsFixed(0)}%',
-        color: sectionColors[i % sectionColors.length],
-        radius: 50,
-        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
-      ));
+      final double kwh;
+      final String label;
+      if (item is Map) {
+        kwh = item['kwh'] as double;
+        label = item['label'] as String;
+      } else {
+        kwh = item.normalizedKWh;
+        label = item.appliance.name;
+      }
+      final value = totalKwh > 0 ? kwh / totalKwh * 100 : 0;
+      sections.add(
+        PieChartSectionData(
+          value: kwh,
+          title: '${value.toStringAsFixed(0)}%',
+          color: sectionColors[i % sectionColors.length],
+          radius: 60,
+          titleStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      );
     }
 
     return ListView(
@@ -132,12 +160,12 @@ class _AnalysisBody extends StatelessWidget {
               Text('Energy breakdown', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSizes.s12),
               SizedBox(
-                height: 180,
+                height: 220,
                 child: PieChart(
                   PieChartData(
                     sections: sections,
-                    centerSpaceRadius: 36,
-                    sectionsSpace: 4,
+                    centerSpaceRadius: 42,
+                    sectionsSpace: 2,
                     borderData: FlBorderData(show: false),
                   ),
                 ),
@@ -146,13 +174,24 @@ class _AnalysisBody extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: chartItems.map((b) {
-                  final idx = chartItems.indexOf(b);
+                children: chartItems.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final item = entry.value;
                   final color = sectionColors[idx % sectionColors.length];
-                  final pct = totalKwh > 0 ? (b.normalizedKWh / totalKwh * 100).toStringAsFixed(0) : '0';
+                  final double kwh;
+                  final String label;
+                  if (item is Map) {
+                    kwh = item['kwh'] as double;
+                    label = item['label'] as String;
+                  } else {
+                    kwh = item.normalizedKWh;
+                    label = item.appliance.name;
+                  }
+                  final pct =
+                      totalKwh > 0 ? (kwh / totalKwh * 100).toStringAsFixed(0) : '0';
                   return Chip(
-                    backgroundColor: color.withValues(alpha: 0.12),
-                    label: Text('${b.appliance.name} • $pct%'),
+                    backgroundColor: color.withValues(alpha: 0.14),
+                    label: Text('$label • $pct%'),
                   );
                 }).toList(),
               ),
