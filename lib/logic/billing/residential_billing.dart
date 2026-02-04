@@ -11,13 +11,17 @@ BillingResult calculateResidentialBill({
   double remaining = units;
   double total = profile.fixedCharge.toDouble();
 
-  for (final slab in slabs) {
+  for (var i = 0; i < slabs.length; i++) {
+    final slab = slabs[i];
     if (remaining <= 0) break;
     final start = slab.startInclusive;
     final end = slab.endInclusive;
     if (units < start) continue;
 
-    final slabSpan = end - start + 1.0;
+    // Compute how many units this slab can hold.
+    // For the first slab we use (end - start), for later slabs (end - start + 1)
+    // so that each slab covers the intended range without off‑by‑one issues.
+    final slabSpan = i == 0 ? (end - start) : (end - start + 1.0);
     final eligibleUnits = (remaining < slabSpan) ? remaining : slabSpan;
 
     final amount = slab.isSubsidised ? 0 : eligibleUnits * slab.ratePerUnit;

@@ -82,7 +82,9 @@ class AnalysisController {
     final wastageCost = wastage.unaccountedKWh * effectiveRate;
 
     final breakdown = appliances.map((a) {
-      final estimatedKWh = EnergyCalculator.monthlyKWh(powerWatts: a.powerRating, dailyHours: a.dailyHours);
+      final singleEstimatedKWh =
+          EnergyCalculator.monthlyKWh(powerWatts: a.powerRating, dailyHours: a.dailyHours);
+      final estimatedKWh = a.count <= 0 ? 0.0 : a.count * singleEstimatedKWh;
       final normalizedKWh = estimatedKWh * scale;
       final monthlyCost = normalizedKWh * effectiveRate;
 

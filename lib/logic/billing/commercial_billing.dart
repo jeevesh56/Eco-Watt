@@ -11,13 +11,15 @@ BillingResult calculateCommercialBill({
   double remaining = units;
   double total = profile.fixedCharge.toDouble();
 
-  for (final slab in slabs) {
+  for (var i = 0; i < slabs.length; i++) {
+    final slab = slabs[i];
     if (remaining <= 0) break;
     final start = slab.startInclusive;
     final end = slab.endInclusive;
     if (units < start) continue;
 
-    final slabSpan = end - start + 1.0;
+    // Same slab-span logic as residential billing.
+    final slabSpan = i == 0 ? (end - start) : (end - start + 1.0);
     final eligibleUnits = (remaining < slabSpan) ? remaining : slabSpan;
     final amount = eligibleUnits * slab.ratePerUnit;
 

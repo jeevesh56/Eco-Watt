@@ -35,7 +35,9 @@ class AppRoutes {
       case configuration:
         return MaterialPageRoute(builder: (_) => const ApplianceConfigScreen());
       case analysis:
-        return MaterialPageRoute(builder: (_) => const AnalysisScreen());
+        // Keep analysis accessible via the bottom navigation shell so that
+        // the dashboard is always visible. Route here just returns the shell.
+        return MaterialPageRoute(builder: (_) => const BottomNavShell());
       case applianceDetail:
         return MaterialPageRoute(
           builder: (_) => ApplianceDetailScreen(
@@ -43,9 +45,9 @@ class AppRoutes {
           ),
         );
       case history:
-        return MaterialPageRoute(builder: (_) => const HistoryScreen());
+        return MaterialPageRoute(builder: (_) => const BottomNavShell());
       case AppRoutes.settings:
-        return MaterialPageRoute(builder: (_) => const SettingsScreen());
+        return MaterialPageRoute(builder: (_) => const BottomNavShell());
       case AppRoutes.monthReview:
         return MaterialPageRoute(builder: (_) => const MonthReviewScreen());
       case AppRoutes.savings:

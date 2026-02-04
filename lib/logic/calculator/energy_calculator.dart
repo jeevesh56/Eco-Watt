@@ -14,7 +14,16 @@ class EnergyCalculator {
   static double totalApplianceKWh(List<ApplianceModel> appliances, {int days = 30}) {
     return appliances.fold<double>(
       0,
-      (sum, a) => sum + monthlyKWh(powerWatts: a.powerRating, dailyHours: a.dailyHours, days: days),
+      (sum, a) =>
+          sum +
+          (a.count <= 0
+              ? 0
+              : a.count *
+                  monthlyKWh(
+                    powerWatts: a.powerRating,
+                    dailyHours: a.dailyHours,
+                    days: days,
+                  )),
     );
   }
 }

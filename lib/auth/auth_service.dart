@@ -41,17 +41,17 @@ class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
 
-  String? _email;
+  String? _username;
   String? _password;
   int _nextUserId = 1;
   int? _userId;
 
   Future<RegisterResult> registerUser({
-    required String email,
+    required String username,
     required String password,
     required String confirmPassword,
   }) async {
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (username.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       return const RegisterResult.failure(RegisterError.emptyFields);
     }
     if (password != confirmPassword) {
@@ -59,31 +59,31 @@ class AuthService {
     }
 
     // Dummy store for this app session only.
-    if (_email != null && _email == email) {
+    if (_username != null && _username == username) {
       return const RegisterResult.failure(RegisterError.accountAlreadyExists);
     }
 
-    debugPrint('[Auth][Signup] email=$email');
+    debugPrint('[Auth][Signup] username=$username');
     debugPrint('[Auth][Signup] password=$password');
 
-    _email = email;
+    _username = username;
     _password = password;
     _userId = _nextUserId++;
     return RegisterResult.success(_userId!);
   }
 
   Future<LoginResult> loginUser({
-    required String email,
+    required String username,
     required String password,
   }) async {
-    if (email.isEmpty || password.isEmpty) {
+    if (username.isEmpty || password.isEmpty) {
       return const LoginResult.failure(LoginError.emptyFields);
     }
 
     debugPrint('[Auth] LOGIN BUTTON PRESSED');
-    debugPrint('[Auth][Login] email=$email');
+    debugPrint('[Auth][Login] username=$username');
 
-    if (_email == null || _password == null || _userId == null) {
+    if (_username == null || _password == null || _userId == null) {
       return const LoginResult.failure(LoginError.invalidCredentials);
     }
 
@@ -91,7 +91,7 @@ class AuthService {
     debugPrint('[Auth][Login] inputPassword=$password');
     debugPrint('[Auth][Login] storedPassword=$_password');
 
-    if (email == _email && password == _password) {
+    if (username == _username && password == _password) {
       debugPrint('[Auth] PASSWORD MATCHED');
       return LoginResult.success(_userId!);
     }

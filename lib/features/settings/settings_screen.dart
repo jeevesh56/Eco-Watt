@@ -126,6 +126,10 @@ class _SettingsBodyState extends State<_SettingsBody> {
                   ),
                 ),
                 const SizedBox(height: AppSizes.s12),
+                // Tiered slabs are intentionally kept hidden from the UI.
+                // The underlying values are still used by the calculator via `SettingsState`.
+                const SizedBox.shrink(),
+                const SizedBox(height: AppSizes.s12),
                 AppCard(
                   child: Text(
                     'Current base rate: ${Formatter.currency(current.baseRate, symbol: _currency)} per kWh',

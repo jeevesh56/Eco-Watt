@@ -11,28 +11,41 @@ class CostCalculator {
       return unitsKWh * tariff.baseRate;
     }
 
+    // Sort tiers by upper bound and apply slab formula:
+    // Units_i = max(0, min(U, End_i) − Start_i)
+    // Cost_i  = Units_i × Rate_i
+    // Total   = Σ Cost_i, with an extra slab above the last tier at baseRate.
     final tiers = tariff.tieredPricing.toList()
       ..sort((a, b) => a.upToKWh.compareTo(b.upToKWh));
 
-    double remaining = unitsKWh;
-    double lowerBound = 0;
+    final double U = unitsKWh;
     double total = 0;
+    double start = 0; // Start_i
 
     for (final tier in tiers) {
-      final cap = tier.upToKWh;
-      if (cap <= lowerBound) continue;
+      final end = tier.upToKWh; // End_i
+      if (end <= start) continue;
 
-      final tierUnits = (cap - lowerBound).clamp(0, remaining);
-      total += tierUnits * tier.rate;
-      remaining -= tierUnits;
-      lowerBound = cap;
+      final unitsInSlab = (U <= start)
+          ? 0
+          : (U >= end)
+              ? (end - start)
+              : (U - start);
 
-      if (remaining <= 0) break;
+      if (unitsInSlab > 0) {
+        total += unitsInSlab * tier.rate;
+      }
+
+      start = end;
+
+      if (U <= start) break;
     }
 
-    // Units above last slab use baseRate as fallback.
-    if (remaining > 0) {
-      total += remaining * tariff.baseRate;
+    // Any units above the highest tier form an additional slab
+    // with Start_last = last tier end, End_last = U, Rate_last = baseRate.
+    if (U > start) {
+      final extraUnits = U - start;
+      total += extraUnits * tariff.baseRate;
     }
 
     return total;

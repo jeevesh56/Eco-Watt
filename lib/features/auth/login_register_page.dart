@@ -24,19 +24,14 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
   bool _busy = false;
 
   late final AnimationController _bgController;
-  late final Animation<double> _bgAnimation;
 
   @override
   void initState() {
     super.initState();
     _bgController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 16),
+      duration: const Duration(seconds: 10),
     )..repeat(reverse: true);
-    _bgAnimation = CurvedAnimation(
-      parent: _bgController,
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
@@ -54,45 +49,61 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
       body: Stack(
         children: [
           // Calm, innovative background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF020617), // deep navy
-                  Color(0xFF0F172A), // slate
-                  Color(0xFF0EA5E9), // cyan accent
-                ],
-              ),
-            ),
+          AnimatedBuilder(
+            animation: _bgController,
+            builder: (context, child) {
+              final t = _bgController.value;
+              final offset = 0.2 * (t - 0.5);
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: const [
+                      Color(0xFF020617),
+                      Color(0xFF0F172A),
+                      Color(0xFF0EA5E9),
+                    ],
+                    stops: [
+                      0.0,
+                      0.5 + offset,
+                      1.0,
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           // soft blurred circles for a modern, calm feel with subtle motion
           AnimatedBuilder(
-            animation: _bgAnimation,
+            animation: _bgController,
             builder: (context, child) {
-              final dy = 24 * (_bgAnimation.value - 0.5);
-              return Stack(
-                children: [
-                  Positioned(
-                    top: -80 + dy,
-                    left: -40,
-                    child: const _BlurCircle(
-                      color: Color(0xFF38BDF8),
-                      size: 220,
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -120 - dy,
-                    right: -60,
-                    child: const _BlurCircle(
-                      color: Color(0xFF22C55E),
-                      size: 260,
-                    ),
-                  ),
-                ],
+              final t = _bgController.value;
+              return Positioned(
+                top: -80 + 20 * t,
+                left: -40 + 30 * t,
+                child: child!,
               );
             },
+            child: const _BlurCircle(
+              color: Color(0xFF38BDF8),
+              size: 220,
+            ),
+          ),
+          AnimatedBuilder(
+            animation: _bgController,
+            builder: (context, child) {
+              final t = _bgController.value;
+              return Positioned(
+                bottom: -120 + 25 * (1 - t),
+                right: -60 + 35 * (1 - t),
+                child: child!,
+              );
+            },
+            child: const _BlurCircle(
+              color: Color(0xFF22C55E),
+              size: 260,
+            ),
           ),
           Center(
             child: SingleChildScrollView(
@@ -157,7 +168,10 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
         const SizedBox(height: 6),
         Text(
           isLogin ? 'Welcome back 👋' : 'Create your account',
-          style: const TextStyle(color: Colors.black54),
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -213,14 +227,12 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
               ),
               const SizedBox(height: 16),
               _textField(
-                'Email',
+                'Username',
                 Icons.person_outline,
                 controller: _usernameCtrl,
                 validator: (v) {
                   final s = (v ?? '').trim();
-                  if (s.isEmpty) return 'Enter email';
-                  final emailOk = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(s);
-                  if (!emailOk) return 'Enter a valid email';
+                  if (s.isEmpty) return 'Enter username';
                   return null;
                 },
               ),
@@ -260,9 +272,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
     return TextFormField(
       controller: controller,
       validator: validator,
-      keyboardType: hint.toLowerCase().contains('email')
-          ? TextInputType.emailAddress
-          : TextInputType.text,
+      keyboardType: TextInputType.text,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: Colors.green[700]),
         hintText: hint,
@@ -359,12 +369,12 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
   Future<void> _loginUser() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final email = _usernameCtrl.text.trim().toLowerCase();
+    final username = _usernameCtrl.text.trim();
     final password = _passwordCtrl.text;
 
-    if (email.isEmpty || password.isEmpty) {
+    if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid email or password')),
+        const SnackBar(content: Text('Invalid username or password')),
       );
       return;
     }
@@ -373,7 +383,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
     try {
       final state = AppStateScope.of(context);
       final result =
-          await state.auth.loginUser(email: email, password: password);
+          await state.auth.loginUser(username: username, password: password);
       if (!mounted) return;
       if (result.ok) {
         await state.bills.load(userId: result.userId);
@@ -384,14 +394,14 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
         Navigator.of(context).pushReplacementNamed(AppRoutes.root);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid email or password')),
+          const SnackBar(content: Text('Invalid username or password')),
         );
       }
     } catch (e, st) {
       debugPrint('[Auth] Login error: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid email or password')),
+          const SnackBar(content: Text('Invalid username or password')),
         );
       }
     } finally {
@@ -402,13 +412,13 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
   Future<void> _registerUser() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final email = _usernameCtrl.text.trim().toLowerCase();
+    final username = _usernameCtrl.text.trim();
     final password = _passwordCtrl.text;
     final confirmPassword = _confirmPasswordCtrl.text;
 
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (username.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter email and password')),
+        const SnackBar(content: Text('Enter username and password')),
       );
       return;
     }
@@ -424,7 +434,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
     try {
       final state = AppStateScope.of(context);
       final result = await state.auth.registerUser(
-        email: email,
+        username: username,
         password: password,
         confirmPassword: confirmPassword,
       );
@@ -479,3 +489,4 @@ class _BlurCircle extends StatelessWidget {
     );
   }
 }
+

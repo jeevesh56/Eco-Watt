@@ -4,6 +4,7 @@ import '../../app/state_container.dart';
 import '../../core/constants/sizes.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/validators.dart';
+import '../../core/utils/formatter.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/slab_progress_bar.dart';
@@ -12,6 +13,7 @@ import '../configuration/appliance_config_screen.dart';
 import '../../logic/billing/billing_engine.dart';
 import '../../logic/billing/billing_result.dart';
 import '../../logic/billing/slab_model.dart';
+import '../../logic/billing/reverse_slab.dart';
 import 'setup_controller.dart';
 
 class SetupScreen extends StatelessWidget {
@@ -61,6 +63,8 @@ class _SetupFormState extends State<_SetupForm> {
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.setupTitle)),
+      // Keep the bottom navigation dashboard visible while in Energy Setup
+      // by embedding content in a Column; BottomNavShell provides the nav bar.
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.s16),
@@ -121,6 +125,13 @@ class _SetupFormState extends State<_SetupForm> {
                         ),
                         const SizedBox(height: AppSizes.s8),
                         SlabProgressBar(progress: _billingPreview!.slabProgress),
+                        const SizedBox(height: AppSizes.s12),
+                        Text(
+                          'Estimated Next Bill: ${Formatter.currency(_billingPreview!.totalBill.toDouble(), symbol: currency)}',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
                       ],
                     ],
                   ),
@@ -245,8 +256,11 @@ class _SetupFormState extends State<_SetupForm> {
     }
 
     final type = connectionTypeFromString(_connectionType);
-    final double units = _amountMode
-        ? SetupController.estimateUnitsFromAmount(type: type, amount: raw)
+    final units = _amountMode
+        ? costToUnitsForConnection(
+            connectionType: type,
+            totalCost: raw,
+          )
         : raw;
 
     final billing =

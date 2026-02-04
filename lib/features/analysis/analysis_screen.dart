@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -8,9 +9,35 @@ import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/slab_progress_bar.dart';
-import '../../logic/calculator/cost_calculator.dart';
+import '../../data/models/bill_model.dart';
+import '../../logic/billing/billing_engine.dart';
+import '../../logic/billing/slab_model.dart';
+import '../../logic/billing/billing_result.dart';
 import '../appliance_detail/appliance_detail_screen.dart';
 import 'analysis_controller.dart';
+
+class _BillingViewState {
+  final double units;
+  final BillingResult original;
+  final BillingResult current;
+
+  const _BillingViewState({
+    required this.units,
+    required this.original,
+    required this.current,
+  });
+
+  _BillingViewState copyWith({BillingResult? current}) {
+    return _BillingViewState(
+      units: units,
+      original: original,
+      current: current ?? this.current,
+    );
+  }
+}
+
+final ValueNotifier<_BillingViewState?> _billingViewStateNotifier =
+    ValueNotifier<_BillingViewState?>(null);
 
 class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({super.key});
@@ -70,9 +97,22 @@ class _AnalysisBody extends StatelessWidget {
     );
     final currency = tariff.currency;
 
-    // Build pie chart sections from top appliances
-    final totalKwh = result.breakdown.fold<double>(0, (s, b) => s + b.normalizedKWh);
-    final chartItems = result.breakdown.take(6).toList();
+    // Build pie chart sections from appliances, aggregating "Others" for clarity.
+    final totalKwh =
+        result.breakdown.fold<double>(0, (s, b) => s + b.normalizedKWh);
+    final sortedBreakdown = [...result.breakdown]
+      ..sort((a, b) => b.normalizedKWh.compareTo(a.normalizedKWh));
+    final top = sortedBreakdown.take(5).toList();
+    final others = sortedBreakdown.skip(5).toList();
+    final chartItems = <dynamic>[...top];
+    if (others.isNotEmpty) {
+      final otherKwh =
+          others.fold<double>(0, (s, b) => s + b.normalizedKWh);
+      chartItems.add({
+        'label': 'Others',
+        'kwh': otherKwh,
+      });
+    }
     final sectionColors = [
       Theme.of(context).colorScheme.primary,
       Theme.of(context).colorScheme.secondary,
@@ -85,14 +125,29 @@ class _AnalysisBody extends StatelessWidget {
     final sections = <PieChartSectionData>[];
     for (var i = 0; i < chartItems.length; i++) {
       final item = chartItems[i];
-      final value = totalKwh > 0 ? item.normalizedKWh / totalKwh * 100 : 0;
-      sections.add(PieChartSectionData(
-        value: item.normalizedKWh,
-        title: '${value.toStringAsFixed(0)}%',
-        color: sectionColors[i % sectionColors.length],
-        radius: 50,
-        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
-      ));
+      final double kwh;
+      final String label;
+      if (item is Map) {
+        kwh = item['kwh'] as double;
+        label = item['label'] as String;
+      } else {
+        kwh = item.normalizedKWh;
+        label = item.appliance.name;
+      }
+      final value = totalKwh > 0 ? kwh / totalKwh * 100 : 0;
+      sections.add(
+        PieChartSectionData(
+          value: kwh,
+          title: '${value.toStringAsFixed(0)}%',
+          color: sectionColors[i % sectionColors.length],
+          radius: 60,
+          titleStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      );
     }
 
     return ListView(
@@ -109,7 +164,9 @@ class _AnalysisBody extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Units: ${Formatter.kwh(bill.unitsConsumed)}'),
-                      Text('Estimated cost (tariff): ${Formatter.currency(CostCalculator.costForUnits(bill.unitsConsumed, tariff), symbol: currency)}'),
+                      Text(
+                        'Estimated cost (tariff): ${Formatter.currency(result.billing.totalBill.toDouble(), symbol: currency)}',
+                      ),
                     ],
                   ),
                   const Spacer(),
@@ -121,6 +178,14 @@ class _AnalysisBody extends StatelessWidget {
               ),
               const SizedBox(height: AppSizes.s12),
               SlabProgressBar(progress: result.billing.slabProgress),
+              const SizedBox(height: AppSizes.s8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => _showWhyHighDialog(context, result),
+                  child: const Text('Why is my bill high?'),
+                ),
+              ),
             ],
           ),
         ),
@@ -132,12 +197,12 @@ class _AnalysisBody extends StatelessWidget {
               Text('Energy breakdown', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSizes.s12),
               SizedBox(
-                height: 180,
+                height: 220,
                 child: PieChart(
                   PieChartData(
                     sections: sections,
-                    centerSpaceRadius: 36,
-                    sectionsSpace: 4,
+                    centerSpaceRadius: 42,
+                    sectionsSpace: 2,
                     borderData: FlBorderData(show: false),
                   ),
                 ),
@@ -146,13 +211,24 @@ class _AnalysisBody extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: chartItems.map((b) {
-                  final idx = chartItems.indexOf(b);
+                children: chartItems.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final item = entry.value;
                   final color = sectionColors[idx % sectionColors.length];
-                  final pct = totalKwh > 0 ? (b.normalizedKWh / totalKwh * 100).toStringAsFixed(0) : '0';
+                  final double kwh;
+                  final String label;
+                  if (item is Map) {
+                    kwh = item['kwh'] as double;
+                    label = item['label'] as String;
+                  } else {
+                    kwh = item.normalizedKWh;
+                    label = item.appliance.name;
+                  }
+                  final pct =
+                      totalKwh > 0 ? (kwh / totalKwh * 100).toStringAsFixed(0) : '0';
                   return Chip(
-                    backgroundColor: color.withValues(alpha: 0.12),
-                    label: Text('${b.appliance.name} • $pct%'),
+                    backgroundColor: color.withValues(alpha: 0.14),
+                    label: Text('$label • $pct%'),
                   );
                 }).toList(),
               ),
@@ -205,6 +281,32 @@ class _AnalysisBody extends StatelessWidget {
               const SizedBox(height: AppSizes.s8),
               Text('Current: ${result.co2KgCurrent.toStringAsFixed(1)} kg CO₂ / month'),
               Text('Avoidable: ${result.co2KgLow.toStringAsFixed(1)} – ${result.co2KgHigh.toStringAsFixed(1)} kg CO₂ / month'),
+              const SizedBox(height: AppSizes.s8),
+              Builder(
+                builder: (context) {
+                  final score = _computeEnergyScore(
+                    bill.unitsConsumed,
+                    result.billing.slabProgress,
+                  );
+                  final label = _labelForScore(score);
+                  final trees = (result.co2KgCurrent / 20).round();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Energy Score: $score/100 – $label',
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: AppSizes.s4),
+                      Text(
+                        'Your usage this month is like planting $trees trees 🌳',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -223,6 +325,11 @@ class _AnalysisBody extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pushNamed('/savings'),
                 child: const Text('Optimize Consumption'),
+              ),
+              const SizedBox(height: AppSizes.s8),
+              OutlinedButton(
+                onPressed: () => _showOptimizeDialog(context, bill, result, connectionType, currency),
+                child: const Text('Optimize My Bill'),
               ),
             ],
           ),
@@ -254,6 +361,139 @@ class _AnalysisBody extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  void _showWhyHighDialog(BuildContext context, AnalysisResult result) {
+    final reasons = <String>[];
+    if (result.topConsumers.isNotEmpty) {
+      final top = result.topConsumers.first;
+      final totalBill = result.billing.totalBill.toDouble();
+      final share =
+          totalBill > 0 ? (top.monthlyCost / totalBill * 100).clamp(0, 100) : 0.0;
+      reasons.add(
+          '${top.appliance.name} contributes ~${share.toStringAsFixed(0)}% of your bill.');
+      if (share >= 40) {
+        reasons.add(
+            'This appliance is a major driver of your bill this month.');
+      }
+    }
+
+    final progress = result.billing.slabProgress;
+    final nextUnits = progress.unitsToNextSlab;
+    if (nextUnits != null && nextUnits <= 20 && nextUnits > 0) {
+      reasons.add(
+          'You are close to the next tariff slab, so additional units will be billed at a higher rate.');
+    } else if (progress.nextSlabLimit == null) {
+      reasons.add(
+          'Your usage is already in the highest slab, so every extra unit is charged at the highest rate.');
+    }
+
+    if (reasons.isEmpty) {
+      reasons.add(
+          'Your bill is primarily driven by overall usage across appliances and fixed charges.');
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Why is my bill high?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: reasons
+              .map((r) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSizes.s8),
+                    child: Text('• $r'),
+                  ))
+              .toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showOptimizeDialog(
+    BuildContext context,
+    BillModel bill,
+    AnalysisResult result,
+    String connectionType,
+    String currency,
+  ) {
+    final type = connectionTypeFromString(connectionType);
+
+    double reductionKwh = 0;
+    final top = result.topConsumers;
+    for (var i = 0; i < top.length; i++) {
+      final t = top[i];
+      final factor = i == 0 ? 0.15 : 0.1; // reduce top appliance a bit more
+      reductionKwh += t.normalizedKWh * factor;
+    }
+    final optimizedUnits =
+        (bill.unitsConsumed - reductionKwh).clamp(0.0, bill.unitsConsumed);
+
+    final optimizedBilling = BillingEngine().calculateBill(
+      connectionType: type,
+      units: optimizedUnits,
+    );
+
+    final currentBillAmount = result.billing.totalBill.toDouble();
+    final optimizedAmount = optimizedBilling.totalBill.toDouble();
+    final savings = (currentBillAmount - optimizedAmount).clamp(0.0, double.infinity);
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Optimized Bill (Simulation)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Current Bill: ${Formatter.currency(currentBillAmount, symbol: currency)}'),
+            const SizedBox(height: AppSizes.s8),
+            Text('Optimized Bill: ${Formatter.currency(optimizedAmount, symbol: currency)}'),
+            const SizedBox(height: AppSizes.s8),
+            Text('You Save: ${Formatter.currency(savings, symbol: currency)}'),
+            const SizedBox(height: AppSizes.s12),
+            const Text(
+              'This is a what-if simulation based on reducing usage of the most energy-hungry appliances. It does not change your saved data.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _computeEnergyScore(double units, SlabProgress progress) {
+    // Base score starts high for low usage and decreases with higher units.
+    double score = 100.0;
+    if (units > 100) {
+      score -= (units - 100) * 0.1; // every extra kWh after 100 reduces score
+    }
+
+    // Penalize being very close to the next slab.
+    final remaining = progress.unitsToNextSlab;
+    if (remaining != null && remaining <= 20 && remaining > 0) {
+      score -= 5;
+    }
+
+    return score.clamp(0, 100).round();
+  }
+
+  String _labelForScore(int score) {
+    if (score >= 80) return 'Good';
+    if (score >= 60) return 'Average';
+    return 'Needs Improvement';
   }
 }
 

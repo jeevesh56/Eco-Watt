@@ -21,6 +21,9 @@ class HistoryScreen extends StatelessWidget {
     final tariff = state.settings.tariff;
     final currency = tariff.currency;
     final trends = HistoryController().buildTrends(bills);
+    // Keep only the latest 6 months, in chronological order, for the chart.
+    final lastTrends =
+        trends.length > 6 ? trends.sublist(trends.length - 6) : trends;
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.historyTitle)),
@@ -43,68 +46,73 @@ class HistoryScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSizes.s12),
-                    // 6-month bar trend chart
+                    // 6-month bar trend chart (enlarged, clearer)
                     AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('6-month trend', style: Theme.of(context).textTheme.titleMedium),
+                          Text(
+                            '6-month bill amount trend',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                           const SizedBox(height: AppSizes.s12),
                           SizedBox(
-                            height: 160,
+                            height: 220,
                             child: BarChart(
-                              () {
-                                // Use last 6 months in chronological order.
-                                final lastSix = trends.length <= 6
-                                    ? trends
-                                    : trends.sublist(trends.length - 6);
-
-                                return BarChartData(
-                                  barGroups: lastSix.asMap().entries.map((entry) {
-                                    final index = entry.key;
-                                    final trend = entry.value;
-                                    return BarChartGroupData(
-                                      x: index,
-                                      barRods: [
-                                        BarChartRodData(
-                                          toY: trend.bill.unitsConsumed,
-                                          color: index == lastSix.length - 1
-                                              ? Theme.of(context).colorScheme.primary
-                                              : AppColors.greenAccent,
-                                        ),
-                                      ],
-                                    );
-                                  }).toList(),
-                                  gridData: FlGridData(show: false),
-                                  borderData: FlBorderData(show: false),
-                                  titlesData: FlTitlesData(
-                                    leftTitles: AxisTitles(
-                                      sideTitles: SideTitles(showTitles: true),
-                                    ),
-                                    bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        getTitlesWidget: (value, meta) {
-                                          final index = value.toInt();
-                                          if (index < 0 || index >= lastSix.length) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          final bill = lastSix[index].bill;
-                                          return Padding(
-                                            padding: const EdgeInsets.only(top: 4),
-                                            child: Text(
-                                              _monthName(bill.month).substring(0, 3),
-                                              style: const TextStyle(fontSize: 10),
-                                            ),
-                                          );
-                                        },
+                              BarChartData(
+                                barGroups: lastTrends
+                                    .asMap()
+                                    .entries
+                                    .map((entry) {
+                                  final index = entry.key;
+                                  final trend = entry.value;
+                                  return BarChartGroupData(
+                                    x: index,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: trend.bill.billAmount,
+                                        color: index == lastTrends.length - 1
+                                            ? Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                            : AppColors.greenAccent,
                                       ),
+                                    ],
+                                  );
+                                }).toList(),
+                                gridData: FlGridData(show: false),
+                                borderData: FlBorderData(show: false),
+                                titlesData: FlTitlesData(
+                                  leftTitles: AxisTitles(
+                                    sideTitles:
+                                        SideTitles(showTitles: true),
+                                  ),
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      getTitlesWidget: (value, meta) {
+                                        final index = value.toInt();
+                                        if (index < 0 ||
+                                            index >= lastTrends.length) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        final bill =
+                                            lastTrends[index].bill;
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                              top: 4.0),
+                                          child: Text(
+                                            _monthName(bill.month),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
-                                );
-                              }(),
-                              swapAnimationDuration: const Duration(milliseconds: 800),
-                              swapAnimationCurve: Curves.easeOutCubic,
+                                ),
+                              ),
                             ),
                           ),
                         ],

@@ -4,12 +4,12 @@ import '../models/appliance_model.dart';
 /// Per requirements, appliance power values live under /data (not UI).
 class AppliancesCatalog {
   static const List<_CatalogItem> _items = [
-    _CatalogItem(name: 'Fan', watts: 75),
-    _CatalogItem(name: 'Light', watts: 20),
-    _CatalogItem(name: 'TV', watts: 150),
-    _CatalogItem(name: 'Refrigerator', watts: 200),
-    _CatalogItem(name: 'Washing Machine', watts: 500),
-    _CatalogItem(name: 'Air Conditioner', watts: 1500),
+    _CatalogItem(name: 'Fan', watts: 75, category: 'Cooling'),
+    _CatalogItem(name: 'Light', watts: 20, category: 'Lighting'),
+    _CatalogItem(name: 'TV', watts: 150, category: 'Entertainment'),
+    _CatalogItem(name: 'Refrigerator', watts: 200, category: 'Kitchen'),
+    _CatalogItem(name: 'Washing Machine', watts: 500, category: 'Laundry'),
+    _CatalogItem(name: 'Air Conditioner', watts: 1500, category: 'Cooling'),
   ];
 
   static List<ApplianceModel> defaults() {
@@ -22,6 +22,8 @@ class AppliancesCatalog {
             usageLevel: 'medium',
             dailyHours: usageHours('medium'),
             starRating: 3,
+            count: 1,
+            category: i.category,
             monthlyCost: 0,
             wastageAmount: 0,
           ),
@@ -41,11 +43,35 @@ class AppliancesCatalog {
         return 5;
     }
   }
+
+  /// Helper for constructing custom appliances from user input.
+  static ApplianceModel custom({
+    required String name,
+    required double powerRating,
+    String usageLevel = 'medium',
+    int starRating = 3,
+    String category = 'Custom',
+  }) {
+    final hours = usageHours(usageLevel);
+    return ApplianceModel(
+      applianceId: 'custom_${name}_${powerRating.toStringAsFixed(0)}',
+      name: name,
+      powerRating: powerRating,
+      usageLevel: usageLevel,
+      dailyHours: hours,
+      starRating: starRating,
+      count: 1,
+      category: category,
+      monthlyCost: 0,
+      wastageAmount: 0,
+    );
+  }
 }
 
 class _CatalogItem {
   final String name;
   final double watts;
-  const _CatalogItem({required this.name, required this.watts});
+  final String category;
+  const _CatalogItem({required this.name, required this.watts, required this.category});
 }
 
