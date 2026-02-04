@@ -11,6 +11,11 @@ import '../../data/mock/appliances_catalog.dart';
 import '../analysis/analysis_screen.dart';
 import 'appliance_config_controller.dart';
 
+bool _isLightOrFan(String name) {
+  final n = name.toLowerCase();
+  return n == 'light' || n == 'fan';
+}
+
 class ApplianceConfigScreen extends StatelessWidget {
   const ApplianceConfigScreen({super.key});
 
@@ -120,29 +125,31 @@ class _ApplianceConfigBodyState extends State<_ApplianceConfigBody> {
                             Text('${current.dailyHours.toStringAsFixed(0)} hrs/day'),
                           ],
                         ),
-                        const SizedBox(height: AppSizes.s8),
-                        Row(
-                          children: [
-                            const Text('Star rating:'),
-                            const SizedBox(width: AppSizes.s8),
-                            DropdownButton<int>(
-                              value: current.starRating,
-                              items: const [
-                                DropdownMenuItem(value: 1, child: Text('1★')),
-                                DropdownMenuItem(value: 2, child: Text('2★')),
-                                DropdownMenuItem(value: 3, child: Text('3★')),
-                                DropdownMenuItem(value: 4, child: Text('4★')),
-                                DropdownMenuItem(value: 5, child: Text('5★')),
-                              ],
-                              onChanged: (!isSelected || scope == null)
-                                  ? null
-                                  : (v) {
-                                      if (v == null) return;
-                                      _controller.updateStarRating(scope, current, v);
-                                    },
-                            ),
-                          ],
-                        ),
+                        if (!_isLightOrFan(current.name)) ...[
+                          const SizedBox(height: AppSizes.s8),
+                          Row(
+                            children: [
+                              const Text('Star rating:'),
+                              const SizedBox(width: AppSizes.s8),
+                              DropdownButton<int>(
+                                value: current.starRating,
+                                items: const [
+                                  DropdownMenuItem(value: 1, child: Text('1★')),
+                                  DropdownMenuItem(value: 2, child: Text('2★')),
+                                  DropdownMenuItem(value: 3, child: Text('3★')),
+                                  DropdownMenuItem(value: 4, child: Text('4★')),
+                                  DropdownMenuItem(value: 5, child: Text('5★')),
+                                ],
+                                onChanged: (!isSelected || scope == null)
+                                    ? null
+                                    : (v) {
+                                        if (v == null) return;
+                                        _controller.updateStarRating(scope, current, v);
+                                      },
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: AppSizes.s8),
                         Row(
                           children: [
@@ -315,11 +322,11 @@ class _ApplianceConfigBodyState extends State<_ApplianceConfigBody> {
                           );
                           return;
                         }
-                        // Return to main dashboard shell; user can tap Analysis
-                        // tab while always seeing the bottom navigation.
+                        // Go straight to Analysis tab so user lands on analysis page.
                         Navigator.of(context).pushNamedAndRemoveUntil(
                           AppRoutes.root,
                           (route) => false,
+                          arguments: 1,
                         );
                       },
                     ),

@@ -59,7 +59,8 @@ class ApplianceDetailScreen extends StatelessWidget {
                     Text(appliance.name, style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: AppSizes.s8),
                     Text('Power: ${appliance.powerRating.toStringAsFixed(0)}W • Usage: ${appliance.usageLevel} (${appliance.dailyHours.toStringAsFixed(0)} hrs/day)'),
-                    Text('Star rating: ${appliance.starRating}★'),
+                    if (!_isLightOrFan(appliance.name))
+                      Text('Star rating: ${appliance.starRating}★'),
                   ],
                 ),
               ),
@@ -82,7 +83,13 @@ class ApplianceDetailScreen extends StatelessWidget {
                   children: [
                     Text('Wastage analysis', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: AppSizes.s8),
-                    Text('₹ wasted: ${Formatter.currency(detail.wastageCost, symbol: tariff.currency)}'),
+                    Text('Unaccounted (this appliance share): ${Formatter.currency(detail.wastageCost, symbol: tariff.currency)}'),
+                    const SizedBox(height: AppSizes.s4),
+                    Text('Wastage = bill units minus estimated appliance use; cost is that difference × rate.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     const SizedBox(height: AppSizes.s8),
                     Text('Reason: ${detail.wastageReason}'),
                   ],
@@ -102,58 +109,60 @@ class ApplianceDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSizes.s12),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Replacement impact', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: AppSizes.s8),
-                    Text('Current: ${appliance.starRating}★  → Recommended: ${detail.recommendedStar}★'),
-                    Text('Estimated savings: ${Formatter.currency(detail.replacementMonthlySavings, symbol: tariff.currency)} / month'),
-                    const SizedBox(height: AppSizes.s12),
-                    AppButton(
-                      label: 'Shop Models (mock)',
-                      onPressed: () {
-                        showModalBottomSheet<void>(
-                          context: context,
-                          showDragHandle: true,
-                          builder: (_) {
-                            final models = [
-                              ('EcoCool ${detail.recommendedStar}★', detail.replacementMonthlySavings),
-                              ('GreenSaver ${detail.recommendedStar}★', detail.replacementMonthlySavings * 0.9),
-                              ('UltraEff ${detail.recommendedStar}★', detail.replacementMonthlySavings * 1.1),
-                            ];
-                            return Padding(
-                              padding: const EdgeInsets.all(AppSizes.s16),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Recommended models', style: Theme.of(context).textTheme.titleMedium),
-                                  const SizedBox(height: AppSizes.s12),
-                                  ...models.map((m) => ListTile(
-                                        contentPadding: EdgeInsets.zero,
-                                        title: Text(m.$1),
-                                        subtitle: Text('Estimated monthly savings: ${Formatter.currency(m.$2, symbol: tariff.currency)}'),
-                                        trailing: const Icon(Icons.open_in_new),
-                                        onTap: () {
-                                          Navigator.pop(context);
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Saved "${m.$1}" to your shortlist (local).')),
-                                          );
-                                        },
-                                      )),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ],
+              if (!_isLightOrFan(appliance.name)) ...[
+                const SizedBox(height: AppSizes.s12),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Replacement impact', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: AppSizes.s8),
+                      Text('Current: ${appliance.starRating}★  → Recommended: ${detail.recommendedStar}★'),
+                      Text('Estimated savings: ${Formatter.currency(detail.replacementMonthlySavings, symbol: tariff.currency)} / month'),
+                      const SizedBox(height: AppSizes.s12),
+                      AppButton(
+                        label: 'Shop Models (mock)',
+                        onPressed: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            showDragHandle: true,
+                            builder: (_) {
+                              final models = [
+                                ('EcoCool ${detail.recommendedStar}★', detail.replacementMonthlySavings),
+                                ('GreenSaver ${detail.recommendedStar}★', detail.replacementMonthlySavings * 0.9),
+                                ('UltraEff ${detail.recommendedStar}★', detail.replacementMonthlySavings * 1.1),
+                              ];
+                              return Padding(
+                                padding: const EdgeInsets.all(AppSizes.s16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Recommended models', style: Theme.of(context).textTheme.titleMedium),
+                                    const SizedBox(height: AppSizes.s12),
+                                    ...models.map((m) => ListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: Text(m.$1),
+                                          subtitle: Text('Estimated monthly savings: ${Formatter.currency(m.$2, symbol: tariff.currency)}'),
+                                          trailing: const Icon(Icons.open_in_new),
+                                          onTap: () {
+                                            Navigator.pop(context);
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Saved "${m.$1}" to your shortlist (local).')),
+                                            );
+                                          },
+                                        )),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -162,3 +171,7 @@ class ApplianceDetailScreen extends StatelessWidget {
   }
 }
 
+bool _isLightOrFan(String name) {
+  final n = name.toLowerCase();
+  return n == 'light' || n == 'fan';
+}

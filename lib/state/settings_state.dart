@@ -16,12 +16,9 @@ class SettingsState extends ChangeNotifier {
   UserModel? get user => _user;
 
   TariffModel _tariff = const TariffModel(
-    providerName: 'Default DISCOM',
-    // Highest slab rate; used as fallback above the last tier.
-    baseRate: 6.30,
+    providerName: 'TNDPCL Corporation Limited',
+    baseRate: 6.50,
     tieredPricing: [
-      // Matches the residential slab configuration in TariffProvider:
-      // 1–100: ₹0.00, 101–200: ₹2.35, 201–400: ₹4.70, 401–500: ₹6.30
       TariffTierModel(upToKWh: 100, rate: 0.0),
       TariffTierModel(upToKWh: 200, rate: 2.35),
       TariffTierModel(upToKWh: 400, rate: 4.70),
@@ -30,6 +27,13 @@ class SettingsState extends ChangeNotifier {
     currency: '₹',
   );
   TariffModel get tariff => _tariff;
+
+  bool _isDarkMode = false;
+  bool get isDarkMode => _isDarkMode;
+  void toggleDarkMode() {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+  }
 
   Future<void> load() async {
     _user = await _repo.getUser();

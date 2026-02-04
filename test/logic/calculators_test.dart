@@ -20,8 +20,8 @@ void main() {
 
   test('wastage detector distributes unaccounted kWh', () {
     final apps = [
-      ApplianceModel(applianceId: 'a1', name: 'A', powerRating: 100, usageLevel: 'medium', dailyHours: 5, starRating: 3, monthlyCost: 0, wastageAmount: 0),
-      ApplianceModel(applianceId: 'a2', name: 'B', powerRating: 200, usageLevel: 'medium', dailyHours: 5, starRating: 3, monthlyCost: 0, wastageAmount: 0),
+      ApplianceModel(applianceId: 'a1', name: 'A', powerRating: 100, usageLevel: 'medium', dailyHours: 5, starRating: 3, count: 1, category: 'General', monthlyCost: 0, wastageAmount: 0),
+      ApplianceModel(applianceId: 'a2', name: 'B', powerRating: 200, usageLevel: 'medium', dailyHours: 5, starRating: 3, count: 1, category: 'General', monthlyCost: 0, wastageAmount: 0),
     ];
     // Estimated: A = (100/1000)*5*30 = 15kWh, B = (200/1000)*5*30 = 30kWh => total = 45
     // Bill says 60 => unaccounted = 15. Shares: A=1/3, B=2/3 => A=5, B=10

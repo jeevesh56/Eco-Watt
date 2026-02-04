@@ -17,8 +17,8 @@ void main() {
     );
 
     final apps = [
-      ApplianceModel(applianceId: 'a1', name: 'A', powerRating: 100, usageLevel: 'medium', dailyHours: 5, starRating: 3, monthlyCost: 0, wastageAmount: 0),
-      ApplianceModel(applianceId: 'a2', name: 'B', powerRating: 200, usageLevel: 'medium', dailyHours: 5, starRating: 3, monthlyCost: 0, wastageAmount: 0),
+      ApplianceModel(applianceId: 'a1', name: 'A', powerRating: 100, usageLevel: 'medium', dailyHours: 5, starRating: 3, count: 1, category: 'General', monthlyCost: 0, wastageAmount: 0),
+      ApplianceModel(applianceId: 'a2', name: 'B', powerRating: 200, usageLevel: 'medium', dailyHours: 5, starRating: 3, count: 1, category: 'General', monthlyCost: 0, wastageAmount: 0),
     ];
 
     final tariff = TariffModel(providerName: 'T', baseRate: 5.0, tieredPricing: const [], currency: '₹');

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../features/analysis/analysis_screen.dart';
 import '../features/appliance_detail/appliance_detail_screen.dart';
 import '../features/configuration/appliance_config_screen.dart';
-import '../features/history/history_screen.dart';
-import '../features/settings/settings_screen.dart';
 import '../features/month_review/month_review_screen.dart';
 import '../features/savings/savings_screen.dart';
 import '../features/shell/bottom_nav_shell.dart';
@@ -28,16 +25,20 @@ class AppRoutes {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final routeName = settings.name;
     switch (routeName) {
-      case root:
-        return MaterialPageRoute(builder: (_) => const BottomNavShell());
+      case root: {
+        final initialIndex = settings.arguments as int? ?? 0;
+        return MaterialPageRoute(
+          builder: (_) => BottomNavShell(initialIndex: initialIndex),
+        );
+      }
       case setup:
         return MaterialPageRoute(builder: (_) => const SetupScreen());
       case configuration:
         return MaterialPageRoute(builder: (_) => const ApplianceConfigScreen());
       case analysis:
-        // Keep analysis accessible via the bottom navigation shell so that
-        // the dashboard is always visible. Route here just returns the shell.
-        return MaterialPageRoute(builder: (_) => const BottomNavShell());
+        return MaterialPageRoute(
+          builder: (_) => const BottomNavShell(initialIndex: 1),
+        );
       case applianceDetail:
         return MaterialPageRoute(
           builder: (_) => ApplianceDetailScreen(

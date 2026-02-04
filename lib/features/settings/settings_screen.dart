@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../app/state_container.dart';
-import '../../app/routes.dart';
 import '../../core/constants/sizes.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/profile_menu.dart';
 import '../../data/models/tariff_model.dart';
 import 'settings_controller.dart';
 
@@ -44,7 +44,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final tariff = AppStateScope.of(context).settings.tariff;
-    _providerCtrl.text = tariff.providerName;
+    _providerCtrl.text = 'TNDPCL Corporation Limited';
     _rateCtrl.text = tariff.baseRate.toStringAsFixed(2);
     _currency = tariff.currency;
     _tiers
@@ -60,13 +60,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.settingsTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.login),
-            tooltip: 'Sign in / Register',
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.login),
-          ),
-        ],
+        actions: const [ProfileMenu()],
       ),
       body: SafeArea(
         child: Padding(
@@ -75,6 +69,22 @@ class _SettingsBodyState extends State<_SettingsBody> {
             key: _formKey,
             child: ListView(
               children: [
+                // Dark mode in profile/settings (tariff overview unchanged below)
+                AppCard(
+                  child: Row(
+                    children: [
+                      Icon(state.settings.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                      const SizedBox(width: 12),
+                      const Text('Dark Mode'),
+                      const Spacer(),
+                      Switch(
+                        value: state.settings.isDarkMode,
+                        onChanged: (_) => state.settings.toggleDarkMode(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSizes.s12),
                 AppCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,8 +94,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
                       TextFormField(
                         controller: _providerCtrl,
                         decoration: const InputDecoration(labelText: 'Provider name'),
-                        enabled: true,
-                        onChanged: (v) {},
+                        readOnly: true,
                       ),
                       const SizedBox(height: AppSizes.s12),
                       TextFormField(
@@ -110,7 +119,7 @@ class _SettingsBodyState extends State<_SettingsBody> {
                         onPressed: () async {
                           if (!_formKey.currentState!.validate()) return;
                           final tariff = TariffModel(
-                            providerName: _providerCtrl.text.trim(),
+                            providerName: 'TNDPCL Corporation Limited',
                             baseRate: double.tryParse(_rateCtrl.text.trim()) ?? 0.0,
                             currency: _currency,
                             tieredPricing: _tiers,

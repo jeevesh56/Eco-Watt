@@ -9,6 +9,7 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/slab_progress_bar.dart';
 import '../../core/widgets/toggle_chip.dart';
+import '../../core/widgets/profile_menu.dart';
 import '../configuration/appliance_config_screen.dart';
 import '../../logic/billing/billing_engine.dart';
 import '../../logic/billing/billing_result.dart';
@@ -62,7 +63,10 @@ class _SetupFormState extends State<_SetupForm> {
     final now = DateTime.now();
 
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.setupTitle)),
+      appBar: AppBar(
+        title: const Text(AppStrings.setupTitle),
+        actions: const [ProfileMenu()],
+      ),
       // Keep the bottom navigation dashboard visible while in Energy Setup
       // by embedding content in a Column; BottomNavShell provides the nav bar.
       body: SafeArea(
@@ -127,9 +131,7 @@ class _SetupFormState extends State<_SetupForm> {
                         SlabProgressBar(progress: _billingPreview!.slabProgress),
                         const SizedBox(height: AppSizes.s12),
                         Text(
-                          _amountMode
-                              ? 'Estimated Units: ${Formatter.kwh(_billingPreview!.totalUnits.toDouble())}'
-                              : 'Estimated Bill: ${Formatter.currency(_billingPreview!.totalBill.toDouble(), symbol: currency)}',
+                          'Estimated Next Bill: ${Formatter.currency(_billingPreview!.totalBill.toDouble(), symbol: currency)}',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -140,60 +142,26 @@ class _SetupFormState extends State<_SetupForm> {
                 ),
                 const SizedBox(height: AppSizes.s16),
                 AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
                       Text(
-                        'Connection Type',
+                        'Occupants',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: _occupants <= 1
+                            ? null
+                            : () => setState(() => _occupants--),
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      Text(
+                        '$_occupants',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: AppSizes.s12),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ToggleChip<String>(
-                            value: 'residential',
-                            groupValue: _connectionType,
-                            label: 'Residential',
-                            onChanged: (v) {
-                              _connectionType = v;
-                              _updatePreview();
-                            },
-                          ),
-                          ToggleChip<String>(
-                            value: 'commercial',
-                            groupValue: _connectionType,
-                            label: 'Commercial',
-                            onChanged: (v) {
-                              _connectionType = v;
-                              _updatePreview();
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.s12),
-                      Row(
-                        children: [
-                          Text(
-                            'Occupants',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _occupants <= 1
-                                ? null
-                                : () => setState(() => _occupants--),
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Text(
-                            '$_occupants',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          IconButton(
-                            onPressed: () => setState(() => _occupants++),
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
-                        ],
+                      IconButton(
+                        onPressed: () => setState(() => _occupants++),
+                        icon: const Icon(Icons.add_circle_outline),
                       ),
                     ],
                   ),

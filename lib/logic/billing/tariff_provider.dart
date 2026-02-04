@@ -14,7 +14,6 @@ class TariffProvider {
     }
   }
 
-<<<<<<< HEAD
   /// Residential tariff profile matching the slab structure:
   /// - 1–100 units: ₹0.00/unit (subsidised)
   /// - 101–200 units: ₹2.35/unit

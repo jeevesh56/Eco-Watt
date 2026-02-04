@@ -10,12 +10,25 @@ class EcoWattApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppStateScope.bootstrap(
-      child: MaterialApp(
-        title: 'ECOWATT',
-        theme: AppTheme.light,
-        initialRoute: AppRoutes.login,
-        onGenerateRoute: AppRoutes.onGenerateRoute,
-        debugShowCheckedModeBanner: false,
+      child: Builder(
+        builder: (context) {
+          final state = AppStateScope.of(context);
+          return AnimatedBuilder(
+            animation: state.settings,
+            builder: (context, _) {
+              final isDark = state.settings.isDarkMode;
+              return MaterialApp(
+                title: 'ECOWATT',
+                theme: AppTheme.light,
+                darkTheme: AppTheme.dark,
+                themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+                initialRoute: AppRoutes.login,
+                onGenerateRoute: AppRoutes.onGenerateRoute,
+                debugShowCheckedModeBanner: false,
+              );
+            },
+          );
+        },
       ),
     );
   }

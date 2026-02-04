@@ -10,7 +10,9 @@ class AuthState extends ChangeNotifier {
   bool get loaded => _loaded;
 
   int? _currentUserId;
+  String? _currentUsername;
   int? get currentUserId => _currentUserId;
+  String? get currentUsername => _currentUsername;
 
   bool get isLoggedIn => _currentUserId != null;
 
@@ -41,6 +43,7 @@ class AuthState extends ChangeNotifier {
         await _service.loginUser(username: username, password: password);
     if (result.ok) {
       _currentUserId = result.userId;
+      _currentUsername = result.username;
       notifyListeners();
     }
     return result;
@@ -48,6 +51,7 @@ class AuthState extends ChangeNotifier {
 
   Future<void> logout() async {
     _currentUserId = null;
+    _currentUsername = null;
     notifyListeners();
   }
 }

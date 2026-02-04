@@ -24,9 +24,10 @@ class RegisterResult {
 
 class LoginResult {
   final int? userId;
+  final String? username;
   final LoginError? error;
-  const LoginResult._({this.userId, this.error});
-  const LoginResult.success(int userId) : this._(userId: userId);
+  const LoginResult._({this.userId, this.username, this.error});
+  const LoginResult.success(int userId, String username) : this._(userId: userId, username: username);
   const LoginResult.failure(LoginError error) : this._(error: error);
   bool get ok => userId != null;
 }
@@ -93,7 +94,7 @@ class AuthService {
 
     if (username == _username && password == _password) {
       debugPrint('[Auth] PASSWORD MATCHED');
-      return LoginResult.success(_userId!);
+      return LoginResult.success(_userId!, username);
     }
     return const LoginResult.failure(LoginError.invalidCredentials);
   }
