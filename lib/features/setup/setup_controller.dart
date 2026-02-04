@@ -2,48 +2,10 @@ import '../../app/state_container.dart';
 import '../../data/models/bill_model.dart';
 import '../../data/models/user_model.dart';
 import '../../logic/billing/billing_engine.dart';
-import '../../logic/billing/billing_result.dart';
 import '../../logic/billing/slab_model.dart';
+import '../../logic/billing/reverse_slab.dart';
 
 class SetupController {
-  /// Numerically inverts the billing engine to estimate units from a
-  /// target bill amount for the given connection type.
-  ///
-  /// This ensures that entering a known bill amount (e.g. ₹1805) produces
-  /// units that, when billed again, give back approximately the same amount.
-  static double estimateUnitsFromAmount({
-    required ConnectionType type,
-    required double amount,
-  }) {
-    final engine = BillingEngine();
-
-    // Grow an upper bound until the billed amount is >= target, or cap out.
-    double low = 0;
-    double high = 500; // start with a reasonable bound
-    const maxHigh = 100000.0;
-
-    BillingResult billFor(double units) =>
-        engine.calculateBill(connectionType: type, units: units);
-
-    while (billFor(high).totalBill < amount && high < maxHigh) {
-      low = high;
-      high *= 2;
-    }
-
-    // Binary search for units such that totalBill ~= amount.
-    for (var i = 0; i < 40; i++) {
-      final mid = (low + high) / 2;
-      final bill = billFor(mid).totalBill.toDouble();
-      if (bill > amount) {
-        high = mid;
-      } else {
-        low = mid;
-      }
-    }
-
-    return (low + high) / 2;
-  }
-
   Future<void> saveSetup({
     required AppStateScope scope,
     required String connectionType,
@@ -57,12 +19,11 @@ class SetupController {
     final currentUserId = state.auth.currentUserId;
     final type = connectionTypeFromString(connectionType);
 
-    // Prefer unit-based billing. If the user entered amount instead of units,
-    // we numerically invert the billing engine to find the matching units.
-    final units = inputIsAmount
-        ? SetupController.estimateUnitsFromAmount(
-            type: type,
-            amount: inputValue,
+    // convert cost back to units using reverse slab logic.
+    final double units = inputIsAmount
+        ? costToUnitsForConnection(
+            connectionType: type,
+            totalCost: inputValue,
           )
         : inputValue;
 

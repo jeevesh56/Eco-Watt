@@ -107,8 +107,8 @@ SlabProgress deriveSlabProgress({
 
   for (var i = 0; i < slabs.length; i++) {
     final slab = slabs[i];
-    final isCurrent =
-        clampedUnits >= slab.startInclusive && clampedUnits <= slab.endInclusive;
+    final isCurrent = clampedUnits >= slab.startInclusive &&
+        clampedUnits <= slab.endInclusive;
     if (isCurrent) {
       current = slab;
       if (i + 1 < slabs.length) {
@@ -121,10 +121,14 @@ SlabProgress deriveSlabProgress({
     }
   }
 
+  final bool isHighestSlab = next == null;
+  final double currentLimit =
+      isHighestSlab ? clampedUnits : current.endInclusive;
+
   return SlabProgress(
     currentUnits: clampedUnits,
     currentSlabStart: current.startInclusive,
-    currentSlabLimit: current.endInclusive,
+    currentSlabLimit: currentLimit,
     nextSlabLimit: next?.endInclusive,
   );
 }

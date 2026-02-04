@@ -55,7 +55,7 @@ class SlabProgressBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: ratio,
             minHeight: 10,
-            backgroundColor: theme.colorScheme.surfaceVariant,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
             color: color,
           ),
         ),
