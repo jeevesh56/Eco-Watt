@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 import '../../app/routes.dart';
 import '../../app/state_container.dart';
@@ -35,38 +36,35 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
     return Scaffold(
       body: Stack(
         children: [
-          // Decorative background
+          // Calm, innovative background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFEDF7F0), Color(0xFFE7F0FF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF020617), // deep navy
+                  Color(0xFF0F172A), // slate
+                  Color(0xFF0EA5E9), // cyan accent
+                ],
               ),
             ),
           ),
+          // soft blurred circles for a modern, calm feel
           Positioned(
             top: -80,
-            left: -60,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.06),
-                shape: BoxShape.circle,
-              ),
+            left: -40,
+            child: _BlurCircle(
+              color: Color(0xFF38BDF8),
+              size: 220,
             ),
           ),
           Positioned(
-            bottom: -100,
-            right: -80,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(140),
-              ),
+            bottom: -120,
+            right: -60,
+            child: _BlurCircle(
+              color: Color(0xFF22C55E),
+              size: 260,
             ),
           ),
           Center(
@@ -101,7 +99,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: Colors.white.withOpacity(0.9),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -424,6 +422,34 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+}
+
+/// Soft blurred circle used in the background for a calm, innovative look.
+class _BlurCircle extends StatelessWidget {
+  final Color color;
+  final double size;
+
+  const _BlurCircle({
+    required this.color,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 35, sigmaY: 35),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withOpacity(0.5),
+          ),
+        ),
+      ),
+    );
   }
 }
 

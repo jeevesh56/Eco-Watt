@@ -245,18 +245,9 @@ class _SetupFormState extends State<_SetupForm> {
     }
 
     final type = connectionTypeFromString(_connectionType);
-    double units;
-    if (_amountMode) {
-      final engine = BillingEngine();
-      units = raw / 7.0;
-      final billingGuess =
-          engine.calculateBill(connectionType: type, units: units);
-      if (billingGuess.effectiveRatePerUnit > 0) {
-        units = raw / billingGuess.effectiveRatePerUnit;
-      }
-    } else {
-      units = raw;
-    }
+    final double units = _amountMode
+        ? SetupController.estimateUnitsFromAmount(type: type, amount: raw)
+        : raw;
 
     final billing =
         BillingEngine().calculateBill(connectionType: type, units: units);

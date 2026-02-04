@@ -14,22 +14,47 @@ class TariffProvider {
     }
   }
 
-  /// Simple approximation of many DISCOM slabs in India for residential use.
+  /// Residential tariff profile matching the slab structure described
+  /// in the app UX (used in Energy Setup estimations).
   ///
-  /// - 0–50 units: subsidised (treated as free here for awareness)
-  /// - 51–150: low rate
-  /// - 151–300: higher rate
-  /// - 301–∞: highest rate
+  /// - 1–100 units: ₹0.00 / unit (subsidised)
+  /// - 101–200 units: ₹2.35 / unit
+  /// - 201–400 units: ₹4.70 / unit
+  /// - 401–500 units: ₹6.30 / unit
+  /// - 501+ units: ₹6.30 / unit (fallback at highest slab rate)
   static const TariffProfile _residentialGeneric = TariffProfile(
     connectionType: ConnectionType.residential,
     regionCode: 'IN-GEN',
     slabs: [
-      Slab(startInclusive: 0, endInclusive: 50, ratePerUnit: 0, isSubsidised: true),
-      Slab(startInclusive: 51, endInclusive: 150, ratePerUnit: 3.25),
-      Slab(startInclusive: 151, endInclusive: 300, ratePerUnit: 5.75),
-      Slab(startInclusive: 301, endInclusive: 9999, ratePerUnit: 7.0),
+      Slab(
+        startInclusive: 1,
+        endInclusive: 100,
+        ratePerUnit: 0.0,
+        isSubsidised: true,
+      ),
+      Slab(
+        startInclusive: 101,
+        endInclusive: 200,
+        ratePerUnit: 2.35,
+      ),
+      Slab(
+        startInclusive: 201,
+        endInclusive: 400,
+        ratePerUnit: 4.70,
+      ),
+      Slab(
+        startInclusive: 401,
+        endInclusive: 500,
+        ratePerUnit: 6.30,
+      ),
+      // Fallback for any usage above 500 units – same rate as last slab.
+      Slab(
+        startInclusive: 501,
+        endInclusive: 9999,
+        ratePerUnit: 6.30,
+      ),
     ],
-    fixedCharge: 50,
+    fixedCharge: 0,
   );
 
   /// Commercial connections usually have no subsidy and higher effective rates.
