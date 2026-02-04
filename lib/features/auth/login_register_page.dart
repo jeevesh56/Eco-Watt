@@ -23,8 +23,25 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
   bool showPassword = false;
   bool _busy = false;
 
+  late final AnimationController _bgController;
+  late final Animation<double> _bgAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _bgController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 16),
+    )..repeat(reverse: true);
+    _bgAnimation = CurvedAnimation(
+      parent: _bgController,
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   void dispose() {
+    _bgController.dispose();
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmPasswordCtrl.dispose();
@@ -50,22 +67,32 @@ class _LoginRegisterPageState extends State<LoginRegisterPage>
               ),
             ),
           ),
-          // soft blurred circles for a modern, calm feel
-          Positioned(
-            top: -80,
-            left: -40,
-            child: _BlurCircle(
-              color: Color(0xFF38BDF8),
-              size: 220,
-            ),
-          ),
-          Positioned(
-            bottom: -120,
-            right: -60,
-            child: _BlurCircle(
-              color: Color(0xFF22C55E),
-              size: 260,
-            ),
+          // soft blurred circles for a modern, calm feel with subtle motion
+          AnimatedBuilder(
+            animation: _bgAnimation,
+            builder: (context, child) {
+              final dy = 24 * (_bgAnimation.value - 0.5);
+              return Stack(
+                children: [
+                  Positioned(
+                    top: -80 + dy,
+                    left: -40,
+                    child: const _BlurCircle(
+                      color: Color(0xFF38BDF8),
+                      size: 220,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -120 - dy,
+                    right: -60,
+                    child: const _BlurCircle(
+                      color: Color(0xFF22C55E),
+                      size: 260,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           Center(
             child: SingleChildScrollView(
@@ -452,4 +479,3 @@ class _BlurCircle extends StatelessWidget {
     );
   }
 }
-

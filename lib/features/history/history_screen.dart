@@ -53,27 +53,58 @@ class HistoryScreen extends StatelessWidget {
                           SizedBox(
                             height: 160,
                             child: BarChart(
-                              BarChartData(
-                                barGroups: trends.reversed.take(6).toList().asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final trend = entry.value as dynamic; // BillTrend
-                                  return BarChartGroupData(
-                                    x: index,
-                                    barRods: [
-                                      BarChartRodData(
-                                        toY: trend.bill.unitsConsumed,
-                                        color: index == 0 ? Theme.of(context).colorScheme.primary : AppColors.greenAccent,
+                              () {
+                                // Use last 6 months in chronological order.
+                                final lastSix = trends.length <= 6
+                                    ? trends
+                                    : trends.sublist(trends.length - 6);
+
+                                return BarChartData(
+                                  barGroups: lastSix.asMap().entries.map((entry) {
+                                    final index = entry.key;
+                                    final trend = entry.value;
+                                    return BarChartGroupData(
+                                      x: index,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: trend.bill.unitsConsumed,
+                                          color: index == lastSix.length - 1
+                                              ? Theme.of(context).colorScheme.primary
+                                              : AppColors.greenAccent,
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                  gridData: FlGridData(show: false),
+                                  borderData: FlBorderData(show: false),
+                                  titlesData: FlTitlesData(
+                                    leftTitles: AxisTitles(
+                                      sideTitles: SideTitles(showTitles: true),
+                                    ),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          final index = value.toInt();
+                                          if (index < 0 || index >= lastSix.length) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          final bill = lastSix[index].bill;
+                                          return Padding(
+                                            padding: const EdgeInsets.only(top: 4),
+                                            child: Text(
+                                              _monthName(bill.month).substring(0, 3),
+                                              style: const TextStyle(fontSize: 10),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    ],
-                                  );
-                                }).toList(),
-                                gridData: FlGridData(show: false),
-                                borderData: FlBorderData(show: false),
-                                titlesData: FlTitlesData(
-                                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-                                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                ),
-                              ),
+                                    ),
+                                  ),
+                                );
+                              }(),
+                              swapAnimationDuration: const Duration(milliseconds: 800),
+                              swapAnimationCurve: Curves.easeOutCubic,
                             ),
                           ),
                         ],
