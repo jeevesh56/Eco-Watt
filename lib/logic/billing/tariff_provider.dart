@@ -17,17 +17,17 @@ class TariffProvider {
   /// Residential tariff profile matching the slab structure described
   /// in the app UX (used in Energy Setup estimations).
   ///
-  /// Demo slab model aligned with ECOWATT test expectations:
-  /// - 0–100 units: subsidised (treated as free)
-  /// - 101–200: low rate
-  /// - 201–400: higher rate
-  /// - 401–∞: highest rate
+  /// Slabs are defined as inclusive ranges [start, end]:
+  /// - 1–100 units: subsidised (treated as free)
+  /// - 101–200: rate 2.35
+  /// - 201–400: rate 4.70
+  /// - 401–500: rate 6.30
   static const TariffProfile _residentialGeneric = TariffProfile(
     connectionType: ConnectionType.residential,
     regionCode: 'IN-GEN',
     slabs: [
       Slab(
-        startInclusive: 0,
+        startInclusive: 1,
         endInclusive: 100,
         ratePerUnit: 0,
         isSubsidised: true,
@@ -44,7 +44,7 @@ class TariffProvider {
       ),
       Slab(
         startInclusive: 401,
-        endInclusive: 9999,
+        endInclusive: 500,
         ratePerUnit: 6.30,
       ),
     ],

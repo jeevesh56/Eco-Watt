@@ -31,10 +31,8 @@ double costToUnitsForProfile({
     final isLast = i == slabs.length - 1;
 
     // Span logic must mirror the forward billing implementation:
-    // first slab uses (end - start), later slabs use (end - start + 1).
-    final span = isFirst
-        ? (slab.endInclusive - slab.startInclusive)
-        : (slab.endInclusive - slab.startInclusive + 1.0);
+    // Slabs are inclusive ranges [start, end], so span = end - start + 1
+    final span = slab.endInclusive - slab.startInclusive + 1.0;
     final rate = slab.ratePerUnit;
 
     // First subsidised slab: always grant full span of units.

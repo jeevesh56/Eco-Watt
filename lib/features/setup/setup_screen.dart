@@ -127,7 +127,9 @@ class _SetupFormState extends State<_SetupForm> {
                         SlabProgressBar(progress: _billingPreview!.slabProgress),
                         const SizedBox(height: AppSizes.s12),
                         Text(
-                          'Estimated Next Bill: ${Formatter.currency(_billingPreview!.totalBill.toDouble(), symbol: currency)}',
+                          _amountMode
+                              ? 'Estimated Units: ${Formatter.kwh(_billingPreview!.totalUnits.toDouble())}'
+                              : 'Estimated Bill: ${Formatter.currency(_billingPreview!.totalBill.toDouble(), symbol: currency)}',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),

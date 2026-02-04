@@ -18,8 +18,8 @@ BillingResult calculateCommercialBill({
     final end = slab.endInclusive;
     if (units < start) continue;
 
-    // Same slab-span logic as residential billing.
-    final slabSpan = i == 0 ? (end - start) : (end - start + 1.0);
+    // Slabs are inclusive ranges [start, end], so span = end - start + 1
+    final slabSpan = end - start + 1.0;
     final eligibleUnits = (remaining < slabSpan) ? remaining : slabSpan;
     final amount = eligibleUnits * slab.ratePerUnit;
 

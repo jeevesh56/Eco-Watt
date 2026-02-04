@@ -17,17 +17,20 @@ class SlabProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Progress bar uses values from billing calculation
     final start = progress.currentSlabStart;
-    final end = progress.nextSlabLimit ?? progress.currentSlabLimit;
-    final span = (end - start).clamp(1.0, double.infinity).toDouble();
-    final ratio =
-        ((progress.currentUnits - start) / span).clamp(0.0, 1.0);
-    final remaining = progress.nextSlabLimit != null
-        ? math.max(0.0, progress.nextSlabLimit! - progress.currentUnits)
-        : null;
+    final end = progress.currentSlabLimit;
+    final units = progress.currentUnits;
+    
+    // Progress calculation: units / end (as per user requirements)
+    // This shows progress from 0 to end within the current slab
+    final ratio = (end > 0) ? (units / end).clamp(0.0, 1.0) : 0.0;
+    
+    // Use unitsLeftInSlab from billing calculation
+    final unitsLeft = progress.unitsLeftInSlab;
 
     final color = _colorForRemaining(
-      remaining: remaining,
+      remaining: unitsLeft > 0 ? unitsLeft : null,
       hasNext: progress.nextSlabLimit != null,
       theme: theme,
     );
@@ -38,13 +41,13 @@ class SlabProgressBar extends StatelessWidget {
         Row(
           children: [
             Text(
-              '${progress.currentUnits.toStringAsFixed(1)} / ${end.toStringAsFixed(0)} units',
+              '${units.toStringAsFixed(1)} / ${end.toStringAsFixed(0)} units',
               style: theme.textTheme.bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             Text(
-              'Slab ${start.toStringAsFixed(0)}-${progress.currentSlabLimit.toStringAsFixed(0)}',
+              'Slab ${start.toStringAsFixed(0)}–${end.toStringAsFixed(0)}',
               style: theme.textTheme.bodySmall,
             ),
           ],
@@ -67,9 +70,9 @@ class SlabProgressBar extends StatelessWidget {
               style: theme.textTheme.bodySmall,
             ),
             const Spacer(),
-            if (remaining != null)
+            if (progress.nextSlabLimit != null)
               Text(
-                '${remaining.toStringAsFixed(0)} units left',
+                '${unitsLeft.toStringAsFixed(0)} units left',
                 style: theme.textTheme.bodySmall,
               )
             else
@@ -79,13 +82,13 @@ class SlabProgressBar extends StatelessWidget {
               ),
           ],
         ),
-        if (remaining != null && remaining <= 20)
+        if (progress.nextSlabLimit != null && unitsLeft <= 20 && unitsLeft > 0)
           Padding(
             padding: const EdgeInsets.only(top: AppSizes.s8),
             child: Text(
-              '⚠ You are ${remaining.toStringAsFixed(0)} units away from the next slab',
+              '⚠ You are ${unitsLeft.toStringAsFixed(0)} units away from the next slab',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: _warningColor(remaining),
+                color: _warningColor(unitsLeft),
                 fontWeight: FontWeight.w600,
               ),
             ),

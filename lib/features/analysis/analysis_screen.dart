@@ -1,9 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 import '../../app/state_container.dart';
-import '../../core/constants/colors.dart';
 import '../../core/constants/sizes.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
@@ -13,31 +10,7 @@ import '../../data/models/bill_model.dart';
 import '../../logic/billing/billing_engine.dart';
 import '../../logic/billing/slab_model.dart';
 import '../../logic/billing/billing_result.dart';
-import '../appliance_detail/appliance_detail_screen.dart';
 import 'analysis_controller.dart';
-
-class _BillingViewState {
-  final double units;
-  final BillingResult original;
-  final BillingResult current;
-
-  const _BillingViewState({
-    required this.units,
-    required this.original,
-    required this.current,
-  });
-
-  _BillingViewState copyWith({BillingResult? current}) {
-    return _BillingViewState(
-      units: units,
-      original: original,
-      current: current ?? this.current,
-    );
-  }
-}
-
-final ValueNotifier<_BillingViewState?> _billingViewStateNotifier =
-    ValueNotifier<_BillingViewState?>(null);
 
 class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({super.key});
@@ -97,273 +70,275 @@ class _AnalysisBody extends StatelessWidget {
     );
     final currency = tariff.currency;
 
-    // Build pie chart sections from appliances, aggregating "Others" for clarity.
+    // Calculate billing using single source of truth
+    final billing = BillingEngine().calculateBill(
+      connectionType: connectionTypeFromString(connectionType),
+      units: bill.unitsConsumed,
+    );
+
+    final energyScore = _computeEnergyScore(
+      bill.unitsConsumed,
+      billing.slabProgress,
+    );
+    final energyScoreLabel = _labelForScore(energyScore);
+    final slab = billing.slabProgress;
+
+    // Build breakdown for energy modal
     final totalKwh =
         result.breakdown.fold<double>(0, (s, b) => s + b.normalizedKWh);
     final sortedBreakdown = [...result.breakdown]
       ..sort((a, b) => b.normalizedKWh.compareTo(a.normalizedKWh));
-    final top = sortedBreakdown.take(5).toList();
-    final others = sortedBreakdown.skip(5).toList();
-    final chartItems = <dynamic>[...top];
-    if (others.isNotEmpty) {
-      final otherKwh =
-          others.fold<double>(0, (s, b) => s + b.normalizedKWh);
-      chartItems.add({
-        'label': 'Others',
-        'kwh': otherKwh,
-      });
-    }
-    final sectionColors = [
-      Theme.of(context).colorScheme.primary,
-      Theme.of(context).colorScheme.secondary,
-      AppColors.warning,
-      AppColors.danger,
-      Colors.tealAccent.shade200,
-      Colors.grey.shade300,
-    ];
 
-    final sections = <PieChartSectionData>[];
-    for (var i = 0; i < chartItems.length; i++) {
-      final item = chartItems[i];
-      final double kwh;
-      final String label;
-      if (item is Map) {
-        kwh = item['kwh'] as double;
-        label = item['label'] as String;
-      } else {
-        kwh = item.normalizedKWh;
-        label = item.appliance.name;
-      }
-      final value = totalKwh > 0 ? kwh / totalKwh * 100 : 0;
-      sections.add(
-        PieChartSectionData(
-          value: kwh,
-          title: '${value.toStringAsFixed(0)}%',
-          color: sectionColors[i % sectionColors.length],
-          radius: 60,
-          titleStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-      );
-    }
+    final theme = Theme.of(context);
 
-    return ListView(
+    // Fit in ONE screen - no scroll, use Column with Expanded
+    return Column(
       children: [
+        // CARD 1: Summary (non-clickable)
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('This month', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSizes.s8),
               Row(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Units: ${Formatter.kwh(bill.unitsConsumed)}'),
-                      Text(
-                        'Estimated cost (tariff): ${Formatter.currency(result.billing.totalBill.toDouble(), symbol: currency)}',
-                      ),
-                    ],
+                  Text(
+                    'This month',
+                    style: theme.textTheme.titleMedium,
                   ),
                   const Spacer(),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pushNamed('/month-review'),
-                    child: const Text('Month in Review'),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.s8,
+                      vertical: AppSizes.s4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.bolt,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppSizes.s4),
+                        Text(
+                          '$energyScore/100 • $energyScoreLabel',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: AppSizes.s12),
-              SlabProgressBar(progress: result.billing.slabProgress),
-              const SizedBox(height: AppSizes.s8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () => _showWhyHighDialog(context, result),
-                  child: const Text('Why is my bill high?'),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.s12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Energy breakdown', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSizes.s12),
-              SizedBox(
-                height: 220,
-                child: PieChart(
-                  PieChartData(
-                    sections: sections,
-                    centerSpaceRadius: 42,
-                    sectionsSpace: 2,
-                    borderData: FlBorderData(show: false),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          Formatter.kwh(bill.unitsConsumed),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.s4),
+                        Text(
+                          'Total units',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: AppSizes.s16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          Formatter.currency(
+                            billing.totalBill.toDouble(),
+                            symbol: currency,
+                          ),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.s4),
+                        Text(
+                          'Total bill',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.s12),
+              Text(
+                'Current slab ${slab.currentSlabStart.toStringAsFixed(0)}–${slab.currentSlabLimit.toStringAsFixed(0)}',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: AppSizes.s8),
+              SlabProgressBar(progress: slab),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: AppSizes.s12),
+
+        // CARD 2: Why is my bill high? (clickable)
+        Expanded(
+          child: AppCard(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppSizes.s12),
+              onTap: () => _showWhyHighModal(context, result),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.s8),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor:
+                          theme.colorScheme.errorContainer.withValues(alpha: 0.7),
+                      child: Icon(
+                        Icons.trending_up,
+                        color: theme.colorScheme.error,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.s12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Why is my bill high?',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: AppSizes.s4),
+                          Text(
+                            'Tap to see key reasons',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSizes.s12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: chartItems.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final item = entry.value;
-                  final color = sectionColors[idx % sectionColors.length];
-                  final double kwh;
-                  final String label;
-                  if (item is Map) {
-                    kwh = item['kwh'] as double;
-                    label = item['label'] as String;
-                  } else {
-                    kwh = item.normalizedKWh;
-                    label = item.appliance.name;
-                  }
-                  final pct =
-                      totalKwh > 0 ? (kwh / totalKwh * 100).toStringAsFixed(0) : '0';
-                  return Chip(
-                    backgroundColor: color.withValues(alpha: 0.14),
-                    label: Text('$label • $pct%'),
-                  );
-                }).toList(),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppSizes.s12),
+
+        // CARD 3: Energy breakdown (clickable)
+        Expanded(
+          child: AppCard(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppSizes.s12),
+              onTap: () => _showEnergyBreakdownModal(
+                context,
+                sortedBreakdown,
+                totalKwh,
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.s12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Top consumers', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSizes.s8),
-              ...result.topConsumers.map((t) => Text(
-                    '- ${t.appliance.name}: ${Formatter.currency(t.monthlyCost, symbol: currency)}',
-                  )),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.s12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Wastage estimate', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSizes.s8),
-              Text('Unaccounted: ${Formatter.kwh(result.wastageKWh)}'),
-              Text('₹ wasted: ${Formatter.currency(result.wastageCost, symbol: currency)}'),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.s12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Savings potential (10–15%)', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSizes.s8),
-              Text('Save ${Formatter.kwh(result.savingsLowKWh)} – ${Formatter.kwh(result.savingsHighKWh)}'),
-              Text('≈ ${Formatter.currency(result.savingsLowCost, symbol: currency)} – ${Formatter.currency(result.savingsHighCost, symbol: currency)} / month'),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.s12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Climate impact (SDG 13)', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSizes.s8),
-              Text('Current: ${result.co2KgCurrent.toStringAsFixed(1)} kg CO₂ / month'),
-              Text('Avoidable: ${result.co2KgLow.toStringAsFixed(1)} – ${result.co2KgHigh.toStringAsFixed(1)} kg CO₂ / month'),
-              const SizedBox(height: AppSizes.s8),
-              Builder(
-                builder: (context) {
-                  final score = _computeEnergyScore(
-                    bill.unitsConsumed,
-                    result.billing.slabProgress,
-                  );
-                  final label = _labelForScore(score);
-                  final trees = (result.co2KgCurrent / 20).round();
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.s8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.pie_chart_outline,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppSizes.s8),
+                        Expanded(
+                          child: Text(
+                            'Energy breakdown',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.s8),
+                    if (sortedBreakdown.isNotEmpty)
                       Text(
-                        'Energy Score: $score/100 – $label',
-                        style: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        'Top: ${sortedBreakdown.first.appliance.name}',
+                        style: theme.textTheme.bodySmall,
                       ),
-                      const SizedBox(height: AppSizes.s4),
-                      Text(
-                        'Your usage this month is like planting $trees trees 🌳',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  );
-                },
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
+
         const SizedBox(height: AppSizes.s12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Recommendations', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSizes.s8),
-              ...result.recommendations.map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text('- ${r.title}: ${r.detail}'),
-                  )),
-              const SizedBox(height: AppSizes.s12),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pushNamed('/savings'),
-                child: const Text('Optimize Consumption'),
+
+        // CARD 4: Optimization & wastage (clickable)
+        Expanded(
+          child: AppCard(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppSizes.s12),
+              onTap: () => _showOptimizationModal(
+                context,
+                bill,
+                result,
+                connectionType,
+                currency,
               ),
-              const SizedBox(height: AppSizes.s8),
-              OutlinedButton(
-                onPressed: () => _showOptimizeDialog(context, bill, result, connectionType, currency),
-                child: const Text('Optimize My Bill'),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.s8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.eco_outlined,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppSizes.s8),
+                        Expanded(
+                          child: Text(
+                            'Optimization & wastage',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.s8),
+                    Text(
+                      'Save ${Formatter.currency(result.savingsLowCost, symbol: currency)}–${Formatter.currency(result.savingsHighCost, symbol: currency)} / month',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.s12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Appliance-wise breakdown', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSizes.s8),
-              ...result.breakdown.map((b) {
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(b.appliance.name),
-                  subtitle: Text('Energy: ${Formatter.kwh(b.normalizedKWh)} • Wastage: ${Formatter.currency(b.wastageCost, symbol: currency)}'),
-                  trailing: Text(Formatter.currency(b.monthlyCost, symbol: currency)),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ApplianceDetailScreen(applianceId: b.appliance.applianceId),
-                      ),
-                    );
-                  },
-                );
-              }),
-            ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  void _showWhyHighDialog(BuildContext context, AnalysisResult result) {
+  void _showWhyHighModal(BuildContext context, AnalysisResult result) {
     final reasons = <String>[];
     if (result.topConsumers.isNotEmpty) {
       final top = result.topConsumers.first;
@@ -393,31 +368,150 @@ class _AnalysisBody extends StatelessWidget {
           'Your bill is primarily driven by overall usage across appliances and fixed charges.');
     }
 
+    final visibleReasons = reasons.take(3).toList();
+
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Why is my bill high?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: reasons
-              .map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSizes.s8),
-                    child: Text('• $r'),
-                  ))
-              .toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
+      barrierDismissible: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.s16),
           ),
-        ],
-      ),
+          child: Container(
+            constraints: const BoxConstraints(
+              maxHeight: 400,
+              maxWidth: 400,
+            ),
+            padding: const EdgeInsets.all(AppSizes.s20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Why is my bill high?',
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSizes.s16),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: visibleReasons.map(
+                        (r) => Padding(
+                          padding: const EdgeInsets.only(bottom: AppSizes.s12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.arrow_right, size: 20),
+                              const SizedBox(width: AppSizes.s8),
+                              Expanded(
+                                child: Text(
+                                  r,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  void _showOptimizeDialog(
+  void _showEnergyBreakdownModal(
+    BuildContext context,
+    List<ApplianceBreakdown> breakdown,
+    double totalKwh,
+  ) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.s16),
+          ),
+          child: Container(
+            constraints: const BoxConstraints(
+              maxHeight: 500,
+              maxWidth: 400,
+            ),
+            padding: const EdgeInsets.all(AppSizes.s20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Energy breakdown',
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSizes.s16),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: breakdown.length,
+                    itemBuilder: (context, index) {
+                      final item = breakdown[index];
+                      final pct = totalKwh > 0
+                          ? (item.normalizedKWh / totalKwh * 100)
+                          : 0.0;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 12,
+                          backgroundColor: theme.colorScheme.primaryContainer,
+                          child: Text(
+                            '${pct.toStringAsFixed(0)}%',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        title: Text(item.appliance.name),
+                        subtitle: Text(Formatter.kwh(item.normalizedKWh)),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showOptimizationModal(
     BuildContext context,
     BillModel bill,
     AnalysisResult result,
@@ -430,7 +524,7 @@ class _AnalysisBody extends StatelessWidget {
     final top = result.topConsumers;
     for (var i = 0; i < top.length; i++) {
       final t = top[i];
-      final factor = i == 0 ? 0.15 : 0.1; // reduce top appliance a bit more
+      final factor = i == 0 ? 0.15 : 0.1;
       reductionKwh += t.normalizedKWh * factor;
     }
     final optimizedUnits =
@@ -447,46 +541,109 @@ class _AnalysisBody extends StatelessWidget {
 
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Optimized Bill (Simulation)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Current Bill: ${Formatter.currency(currentBillAmount, symbol: currency)}'),
-            const SizedBox(height: AppSizes.s8),
-            Text('Optimized Bill: ${Formatter.currency(optimizedAmount, symbol: currency)}'),
-            const SizedBox(height: AppSizes.s8),
-            Text('You Save: ${Formatter.currency(savings, symbol: currency)}'),
-            const SizedBox(height: AppSizes.s12),
-            const Text(
-              'This is a what-if simulation based on reducing usage of the most energy-hungry appliances. It does not change your saved data.',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
+      barrierDismissible: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.s16),
           ),
-        ],
-      ),
+          child: Container(
+            constraints: const BoxConstraints(
+              maxHeight: 500,
+              maxWidth: 400,
+            ),
+            padding: const EdgeInsets.all(AppSizes.s20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Optimization & wastage',
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSizes.s16),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _BillAmountTile(
+                                label: 'Current bill',
+                                amount: Formatter.currency(
+                                  currentBillAmount,
+                                  symbol: currency,
+                                ),
+                                highlight: false,
+                              ),
+                            ),
+                            const SizedBox(width: AppSizes.s12),
+                            Expanded(
+                              child: _BillAmountTile(
+                                label: 'Optimized bill',
+                                amount: Formatter.currency(
+                                  optimizedAmount,
+                                  symbol: currency,
+                                ),
+                                highlight: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSizes.s16),
+                        Text(
+                          'You save ${Formatter.currency(savings, symbol: currency)} / month',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.s16),
+                        Text(
+                          'Wastage: ${Formatter.currency(result.wastageCost, symbol: currency)}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.s8),
+                        Text(
+                          'Small changes in usage can reduce wastage and climate impact.',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
   int _computeEnergyScore(double units, SlabProgress progress) {
-    // Base score starts high for low usage and decreases with higher units.
     double score = 100.0;
     if (units > 100) {
-      score -= (units - 100) * 0.1; // every extra kWh after 100 reduces score
+      score -= (units - 100) * 0.1;
     }
-
-    // Penalize being very close to the next slab.
     final remaining = progress.unitsToNextSlab;
     if (remaining != null && remaining <= 20 && remaining > 0) {
       score -= 5;
     }
-
     return score.clamp(0, 100).round();
   }
 
@@ -497,3 +654,45 @@ class _AnalysisBody extends StatelessWidget {
   }
 }
 
+class _BillAmountTile extends StatelessWidget {
+  final String label;
+  final String amount;
+  final bool highlight;
+
+  const _BillAmountTile({
+    required this.label,
+    required this.amount,
+    required this.highlight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bg = highlight
+        ? theme.colorScheme.primaryContainer
+        : theme.colorScheme.surfaceVariant;
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.s12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppSizes.s12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppSizes.s4),
+          Text(
+            amount,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

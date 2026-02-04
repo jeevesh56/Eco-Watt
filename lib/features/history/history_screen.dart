@@ -8,6 +8,8 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/strings.dart';
 import '../../core/utils/formatter.dart';
 import '../../core/widgets/app_card.dart';
+import '../../logic/billing/billing_engine.dart';
+import '../../logic/billing/slab_model.dart';
 import '../analysis/analysis_controller.dart';
 import 'history_controller.dart';
 
@@ -66,11 +68,17 @@ class HistoryScreen extends StatelessWidget {
                                     .map((entry) {
                                   final index = entry.key;
                                   final trend = entry.value;
+                                  // Use billing calculation as single source of truth
+                                  final connectionType = state.settings.user?.connectionType ?? 'residential';
+                                  final billing = BillingEngine().calculateBill(
+                                    connectionType: connectionTypeFromString(connectionType),
+                                    units: trend.bill.unitsConsumed,
+                                  );
                                   return BarChartGroupData(
                                     x: index,
                                     barRods: [
                                       BarChartRodData(
-                                        toY: trend.bill.billAmount,
+                                        toY: billing.totalBill.toDouble(),
                                         color: index == lastTrends.length - 1
                                             ? Theme.of(context)
                                                 .colorScheme

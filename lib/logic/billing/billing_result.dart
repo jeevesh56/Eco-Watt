@@ -26,11 +26,15 @@ class SlabProgress {
   /// Inclusive end of the next slab; null if already on the highest slab.
   final double? nextSlabLimit;
 
+  /// Units left in the current slab (currentSlabLimit - currentUnits).
+  final double unitsLeftInSlab;
+
   const SlabProgress({
     required this.currentUnits,
     required this.currentSlabStart,
     required this.currentSlabLimit,
     required this.nextSlabLimit,
+    required this.unitsLeftInSlab,
   });
 
   /// Units remaining before hitting the next slab. Null when no next slab exists.
@@ -42,6 +46,7 @@ class SlabProgress {
         'currentSlabStart': currentSlabStart,
         'currentSlabLimit': currentSlabLimit,
         'nextSlabLimit': nextSlabLimit,
+        'unitsLeftInSlab': unitsLeftInSlab,
       };
 }
 
@@ -88,6 +93,35 @@ class BillingResult {
       };
 }
 
+/// Calculate cost for specific units using the same billing logic.
+/// Uses inclusive formula: Units_i = max(0, min(units, slab.end) - slab.start + 1)
+double _calculateCostForUnits({
+  required List<Slab> slabs,
+  required double units,
+  required double fixedCharge,
+}) {
+  double total = fixedCharge;
+
+  for (var i = 0; i < slabs.length; i++) {
+    final slab = slabs[i];
+    final start = slab.startInclusive;
+    final end = slab.endInclusive;
+    
+    if (units < start) continue;
+    
+    final unitsInSlab = units <= end
+        ? (units - start + 1.0).clamp(0.0, double.infinity)
+        : (end - start + 1.0);
+    
+    if (unitsInSlab <= 0) continue;
+
+    final amount = slab.isSubsidised ? 0 : unitsInSlab * slab.ratePerUnit;
+    total += amount;
+  }
+
+  return total;
+}
+
 SlabProgress deriveSlabProgress({
   required List<Slab> slabs,
   required double units,
@@ -98,13 +132,15 @@ SlabProgress deriveSlabProgress({
       currentSlabStart: 0,
       currentSlabLimit: 0,
       nextSlabLimit: null,
+      unitsLeftInSlab: 0,
     );
   }
 
   final clampedUnits = units < 0 ? 0.0 : units;
-  Slab current = slabs.first;
+  Slab current = slabs.last; // Default to highest slab if units exceed all
   Slab? next;
 
+  // Find the current slab: units >= slab.start AND units <= slab.end
   for (var i = 0; i < slabs.length; i++) {
     final slab = slabs[i];
     final isCurrent = clampedUnits >= slab.startInclusive &&
@@ -116,20 +152,26 @@ SlabProgress deriveSlabProgress({
       }
       break;
     }
-    if (i == slabs.length - 1) {
+    // If units exceed this slab but haven't found current yet, continue
+    if (clampedUnits > slab.endInclusive && i == slabs.length - 1) {
+      // Units exceed all slabs, use highest slab
       current = slab;
+      next = null;
     }
   }
 
-  final bool isHighestSlab = next == null;
-  final double currentLimit =
-      isHighestSlab ? clampedUnits : current.endInclusive;
+  // Current slab end is always the slab's endInclusive (not clamped to units)
+  final double currentSlabEnd = current.endInclusive;
+  
+  // Calculate units left in current slab
+  final unitsLeftInSlab = (currentSlabEnd - clampedUnits).clamp(0.0, double.infinity);
 
   return SlabProgress(
     currentUnits: clampedUnits,
     currentSlabStart: current.startInclusive,
-    currentSlabLimit: currentLimit,
+    currentSlabLimit: currentSlabEnd,
     nextSlabLimit: next?.endInclusive,
+    unitsLeftInSlab: unitsLeftInSlab,
   );
 }
 
