@@ -323,63 +323,107 @@ class _AnalysisBody extends StatelessWidget {
           ),
         ),
 
-        // CARD 3: Energy breakdown
+        // CARD 3: Energy breakdown — sheet opens ONLY on tap of title or "Tap for full breakdown", not on chart
         const SizedBox(height: AppSizes.s12),
         AppCard(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppSizes.s12),
-            onTap: () => _showEnergyBreakdownSheet(
-              context,
-              chartItems,
-              totalKwh,
-              sectionColors,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Energy breakdown',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const Spacer(),
-                    if (topAppliance != null)
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(AppSizes.s12),
+                onTap: () => _showEnergyBreakdownSheet(
+                  context,
+                  chartItems,
+                  totalKwh,
+                  sectionColors,
+                  totalBill: result.billing.totalBill.toDouble(),
+                  currency: currency,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizes.s4),
+                  child: Row(
+                    children: [
                       Text(
-                        '${topAppliance.appliance.name} ${topAppliancePct.toStringAsFixed(0)}%',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        'Energy breakdown',
+                        style: theme.textTheme.titleMedium,
                       ),
-                  ],
+                      const Spacer(),
+                      if (topAppliance != null)
+                        Text(
+                          '${topAppliance.appliance.name} ${topAppliancePct.toStringAsFixed(0)}%',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: AppSizes.s4),
-                Text(
-                  'Based on your bill: ${Formatter.kwh(bill.unitsConsumed)} total. Shares scaled from appliance usage.',
-                  style: theme.textTheme.bodySmall,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 0, right: 0, bottom: AppSizes.s12),
+                child: InkWell(
+                  onTap: () => _showEnergyBreakdownSheet(
+                    context,
+                    chartItems,
+                    totalKwh,
+                    sectionColors,
+                    totalBill: result.billing.totalBill.toDouble(),
+                    currency: currency,
+                  ),
+                  child: Text(
+                    'Based on your bill: ${Formatter.kwh(bill.unitsConsumed)} total. Shares scaled from appliance usage.',
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
-                const SizedBox(height: AppSizes.s12),
-                SizedBox(
-                  height: 180,
-                  child: PieChart(
-                    PieChartData(
-                      sections: sections,
-                      centerSpaceRadius: 42,
-                      sectionsSpace: 2,
-                      borderData: FlBorderData(show: false),
+              ),
+              // Pie chart: tap opens slice detail only; does NOT open full sheet (no InkWell on chart)
+              SizedBox(
+                height: 180,
+                child: PieChart(
+                  PieChartData(
+                    sections: sections,
+                    centerSpaceRadius: 42,
+                    sectionsSpace: 2,
+                    borderData: FlBorderData(show: false),
+                    pieTouchData: PieTouchData(
+                        touchCallback: (event, response) {
+                        // Open ONLY on user tap — do not open on layout/state updates
+                        if (event is! FlTapDownEvent) return;
+                        if (response == null) return;
+                        final index = response.touchedSection?.touchedSectionIndex ?? -1;
+                        if (index < 0 || index >= chartItems.length) return;
+                        _showSliceDetailPopup(
+                          context,
+                          chartItems: chartItems,
+                          index: index,
+                          totalKwh: totalKwh,
+                          totalBill: result.billing.totalBill.toDouble(),
+                          currency: currency,
+                        );
+                      },
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSizes.s8),
-                Align(
-                  alignment: Alignment.centerRight,
+              ),
+              const SizedBox(height: AppSizes.s8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: InkWell(
+                  onTap: () => _showEnergyBreakdownSheet(
+                    context,
+                    chartItems,
+                    totalKwh,
+                    sectionColors,
+                    totalBill: result.billing.totalBill.toDouble(),
+                    currency: currency,
+                  ),
                   child: Text(
                     'Tap for full breakdown',
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
 
@@ -420,7 +464,46 @@ class _AnalysisBody extends StatelessWidget {
           ),
         ),
 
-        // CARD 5: Climate & wastage (combined)
+        // CARD 5: Wastage (collapsed view) — modal opens ONLY on tap
+        const SizedBox(height: AppSizes.s12),
+        AppCard(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppSizes.s12),
+            onTap: () => _showWastageSheet(context, result, currency),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSizes.s4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: theme.colorScheme.error,
+                    size: 24,
+                  ),
+                  const SizedBox(width: AppSizes.s12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Wastage',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: AppSizes.s4),
+                        Text(
+                          '${Formatter.kwh(result.wastageKWh)} unaccounted • ${Formatter.currency(result.wastageCost, symbol: currency)} potential savings',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // CARD 6: Climate (combined with wastage details in its sheet)
         const SizedBox(height: AppSizes.s12),
         AppCard(
           child: InkWell(
@@ -666,12 +749,81 @@ class _AnalysisBody extends StatelessWidget {
     );
   }
 
+  /// Pop-up when user taps a pie slice: Power (W), Usage (%), Cost (₹).
+  /// Cost = (applianceUnits / totalUnits) × totalBill (proportional to slab bill).
+  void _showSliceDetailPopup(
+    BuildContext context, {
+    required List<dynamic> chartItems,
+    required int index,
+    required double totalKwh,
+    required double totalBill,
+    required String currency,
+  }) {
+    final item = chartItems[index];
+    double kwh;
+    String label;
+    int? powerWatts;
+    if (item is Map) {
+      kwh = item['kwh'] as double;
+      label = item['label'] as String;
+    } else {
+      final row = item as ApplianceBreakdown;
+      kwh = row.normalizedKWh;
+      label = row.appliance.name;
+      powerWatts = row.appliance.powerRating.round();
+    }
+    final usagePct = totalKwh > 0 ? (kwh / totalKwh * 100) : 0.0;
+    final cost = totalKwh > 0 ? (kwh / totalKwh) * totalBill : 0.0;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return AlertDialog(
+          title: Text(label),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (powerWatts != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text('• Power: $powerWatts W', style: theme.textTheme.bodyLarge),
+                ),
+              if (powerWatts == null && label == 'Others')
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text('• Power: —', style: theme.textTheme.bodyLarge),
+                ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text('• Usage: ${usagePct.toStringAsFixed(0)} %', style: theme.textTheme.bodyLarge),
+              ),
+              Text(
+                '• Cost: ${Formatter.currency(cost, symbol: currency)}',
+                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showEnergyBreakdownSheet(
     BuildContext context,
     List<dynamic> chartItems,
     double totalKwh,
-    List<Color> sectionColors,
-  ) {
+    List<Color> sectionColors, {
+    required double totalBill,
+    required String currency,
+  }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -707,6 +859,7 @@ class _AnalysisBody extends StatelessWidget {
                       }
                       final pct =
                           totalKwh > 0 ? (kwh / totalKwh * 100).toStringAsFixed(0) : '0';
+                      final cost = totalKwh > 0 ? (kwh / totalKwh) * totalBill : 0.0;
                       final color = sectionColors[index % sectionColors.length];
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
@@ -715,11 +868,133 @@ class _AnalysisBody extends StatelessWidget {
                           backgroundColor: color,
                         ),
                         title: Text(label),
-                        subtitle: Text(
-                          '${Formatter.kwh(kwh)} • $pct%',
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('• Usage: ${Formatter.kwh(kwh)} ($pct%)'),
+                            Text('• Cost: ${Formatter.currency(cost, symbol: currency)}'),
+                          ],
                         ),
                       );
                     },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Wastage modal — opens ONLY on user tap. Same style as Energy Breakdown.
+  /// Appliance-wise wastage: applianceWastageUnits = share × totalWastageUnits,
+  /// applianceWastageCost = (applianceWastageUnits / totalUnits) × totalBill.
+  void _showWastageSheet(
+    BuildContext context,
+    AnalysisResult result,
+    String currency,
+  ) {
+    final totalWastageUnits = result.wastageKWh;
+    final totalUnits = result.bill.unitsConsumed;
+    final totalBill = result.billing.totalBill.toDouble();
+    final totalApplianceUsage = result.breakdown.fold<double>(
+      0.0, (s, b) => s + b.normalizedKWh,
+    );
+    final optimizedBill = (totalBill - result.wastageCost).clamp(0.0, double.infinity);
+
+    final applianceWastage = <({String name, double units, double cost})>[];
+    if (totalApplianceUsage > 0 && totalWastageUnits > 0 && totalUnits > 0) {
+      for (final b in result.breakdown) {
+        final share = b.normalizedKWh / totalApplianceUsage;
+        final applianceWastageUnits = share * totalWastageUnits;
+        final applianceWastageCost = (applianceWastageUnits / totalUnits) * totalBill;
+        applianceWastage.add((
+          name: b.appliance.name,
+          units: applianceWastageUnits,
+          cost: applianceWastageCost,
+        ));
+      }
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSizes.s16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Wastage',
+                  style: theme.textTheme.titleLarge,
+                ),
+                const SizedBox(height: AppSizes.s12),
+                // Section 1 — Summary
+                Text(
+                  '• Total wasted units: ${Formatter.kwh(totalWastageUnits)}',
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppSizes.s4),
+                Text(
+                  '• Total wastage cost: ${Formatter.currency(result.wastageCost, symbol: currency)}',
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppSizes.s16),
+                // Section 2 — Appliance-wise wastage
+                Text(
+                  'Appliance-wise wastage',
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSizes.s8),
+                ...applianceWastage.map((a) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizes.s12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        a.name,
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: AppSizes.s4),
+                      Text(
+                        '• Wasted usage: ${Formatter.kwh(a.units)}',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      Text(
+                        '• Cost impact: ${Formatter.currency(a.cost, symbol: currency)}',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                )),
+                const SizedBox(height: AppSizes.s12),
+                // Section 3 — Explanation
+                Text(
+                  'Unaccounted usage comes from standby power, inefficient usage, or appliances not explicitly listed.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.s16),
+                // Section 4 — Optimization Result
+                Text(
+                  '• Optimized bill (if wastage removed): ${Formatter.currency(optimizedBill, symbol: currency)}',
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppSizes.s8),
+                Text(
+                  '• Total savings: ${Formatter.currency(result.wastageCost, symbol: currency)}',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ],
