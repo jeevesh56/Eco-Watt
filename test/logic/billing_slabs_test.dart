@@ -40,8 +40,18 @@ void main() {
       expect(res.totalBill, closeTo(1805, 0.001));
       expect(res.slabProgress.currentSlabStart, 401);
       expect(res.slabProgress.currentSlabLimit, 500);
-      expect(res.slabProgress.nextSlabLimit, isNull);
+      expect(res.slabProgress.nextSlabLimit, 600); // next slab 501-600
       expect(res.slabProgress.currentUnits, 500);
+    });
+
+    test('801 units => highest slab, nextSlabLimit null', () {
+      final res = engine.calculateBill(
+        connectionType: ConnectionType.residential,
+        units: 801,
+      );
+      expect(res.slabProgress.currentSlabStart, 801);
+      expect(res.slabProgress.currentSlabLimit, 9999);
+      expect(res.slabProgress.nextSlabLimit, isNull);
     });
   });
 

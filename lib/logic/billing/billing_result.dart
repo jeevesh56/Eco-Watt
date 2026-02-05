@@ -88,6 +88,8 @@ class BillingResult {
       };
 }
 
+/// Finds current slab from table ranges — NEVER derive from units.
+/// currentSlab = slabs.find(s => units >= s.start && units <= s.end)
 SlabProgress deriveSlabProgress({
   required List<Slab> slabs,
   required double units,
@@ -107,9 +109,8 @@ SlabProgress deriveSlabProgress({
 
   for (var i = 0; i < slabs.length; i++) {
     final slab = slabs[i];
-    final isCurrent = clampedUnits >= slab.startInclusive &&
-        clampedUnits <= slab.endInclusive;
-    if (isCurrent) {
+    if (clampedUnits >= slab.startInclusive &&
+        clampedUnits <= slab.endInclusive) {
       current = slab;
       if (i + 1 < slabs.length) {
         next = slabs[i + 1];
@@ -121,14 +122,11 @@ SlabProgress deriveSlabProgress({
     }
   }
 
-  final bool isHighestSlab = next == null;
-  final double currentLimit =
-      isHighestSlab ? clampedUnits : current.endInclusive;
-
+  // ALWAYS use slab boundaries — never set currentSlabLimit = units
   return SlabProgress(
     currentUnits: clampedUnits,
     currentSlabStart: current.startInclusive,
-    currentSlabLimit: currentLimit,
+    currentSlabLimit: current.endInclusive,
     nextSlabLimit: next?.endInclusive,
   );
 }

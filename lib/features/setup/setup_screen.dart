@@ -8,6 +8,7 @@ import '../../core/utils/formatter.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/slab_progress_bar.dart';
+import '../../core/widgets/slab_warning_card.dart';
 import '../../core/widgets/toggle_chip.dart';
 import '../../core/widgets/profile_menu.dart';
 import '../configuration/appliance_config_screen.dart';
@@ -123,12 +124,46 @@ class _SetupFormState extends State<_SetupForm> {
                       ),
                       if (_billingPreview != null) ...[
                         const SizedBox(height: AppSizes.s16),
+                        if (_isAtSlabBoundary(_billingPreview!.totalUnits.toDouble()))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSizes.s12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizes.s12,
+                                vertical: AppSizes.s8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: Theme.of(context).colorScheme.error,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: AppSizes.s8),
+                                  Expanded(
+                                    child: Text(
+                                      'You entered a higher tariff slab',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(context).colorScheme.onErrorContainer,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         Text(
                           'Slab progress',
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                         const SizedBox(height: AppSizes.s8),
                         SlabProgressBar(progress: _billingPreview!.slabProgress),
+                        SlabWarningCard(progress: _billingPreview!.slabProgress),
                         const SizedBox(height: AppSizes.s12),
                         Text(
                           'Estimated Next Bill: ${Formatter.currency(_billingPreview!.totalBill.toDouble(), symbol: currency)}',
@@ -216,6 +251,16 @@ class _SetupFormState extends State<_SetupForm> {
         ),
       ),
     );
+  }
+
+  /// Slab boundary starts that trigger "higher slab" warning: 101, 201, 401, 501, 601, 801.
+  static const _slabBoundaryStarts = [101.0, 201.0, 401.0, 501.0, 601.0, 801.0];
+
+  bool _isAtSlabBoundary(double units) {
+    for (final boundary in _slabBoundaryStarts) {
+      if ((units - boundary).abs() < 0.01) return true;
+    }
+    return false;
   }
 
   void _updatePreview() {

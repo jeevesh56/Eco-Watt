@@ -16,17 +16,20 @@ class SlabProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Progress bar uses values from billing calculation
+    // Progress bar: slab table ranges only — progressMin=start, progressMax=end, progressValue=units
     final start = progress.currentSlabStart;
     final end = progress.currentSlabLimit;
     final units = progress.currentUnits;
-    
-    // Progress calculation: units / end (as per user requirements)
-    // This shows progress from 0 to end within the current slab
-    final ratio = (end > 0) ? (units / end).clamp(0.0, 1.0) : 0.0;
 
-    /// Units left in current slab before next slab (null when on highest slab).
+    // Progress within current slab: (units - start) / (end - start)
+    final slabSpan = end - start;
+    final ratio = slabSpan > 0
+        ? ((units - start) / slabSpan).clamp(0.0, 1.0)
+        : 0.0;
+
     final remaining = progress.unitsToNextSlab;
+    // Only show "Highest slab" when units >= 801 (never for 401, 498, etc.)
+    final isHighestSlab = start >= 801;
 
     final color = _colorForRemaining(
       remaining: remaining,
@@ -40,13 +43,13 @@ class SlabProgressBar extends StatelessWidget {
         Row(
           children: [
             Text(
-              '${progress.currentUnits.toStringAsFixed(1)} / ${end.toStringAsFixed(0)} units',
+              '${units.toStringAsFixed(0)} / ${end.toStringAsFixed(0)} units',
               style: theme.textTheme.bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             Text(
-              'Slab ${start.toStringAsFixed(0)}-${progress.currentSlabLimit.toStringAsFixed(0)}',
+              'Slab ${start.toStringAsFixed(0)}–${end.toStringAsFixed(0)}',
               style: theme.textTheme.bodySmall,
             ),
           ],
@@ -74,7 +77,7 @@ class SlabProgressBar extends StatelessWidget {
                 '${remaining.toStringAsFixed(0)} units left',
                 style: theme.textTheme.bodySmall,
               )
-            else
+            else if (isHighestSlab)
               Text(
                 'Highest slab',
                 style: theme.textTheme.bodySmall,

@@ -323,4 +323,3 @@ double _niceInterval(double maxY) {
   if (maxY <= 1000) return 200;
   return 500;
 }
-

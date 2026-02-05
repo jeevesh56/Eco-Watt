@@ -14,36 +14,20 @@ class TariffProvider {
     }
   }
 
-  /// Residential tariff profile matching the slab structure:
-  /// - 1–100 units: ₹0.00/unit (subsidised)
-  /// - 101–200 units: ₹2.35/unit
-  /// - 201–400 units: ₹4.70/unit
-  /// - 401–500 units: ₹6.30/unit
+  /// Residential tariff profile — MANDATORY slab table:
+  /// 1–100   → ₹0.00 | 101–200 → ₹2.35 | 201–400 → ₹4.70 | 401–500 → ₹6.30
+  /// 501–600 → ₹8.40 | 601–800 → ₹9.45 | 801+    → ₹10.50
   static const TariffProfile _residentialGeneric = TariffProfile(
     connectionType: ConnectionType.residential,
     regionCode: 'IN-GEN',
     slabs: [
-      Slab(
-        startInclusive: 1,
-        endInclusive: 100,
-        ratePerUnit: 0.0,
-        isSubsidised: true,
-      ),
-      Slab(
-        startInclusive: 101,
-        endInclusive: 200,
-        ratePerUnit: 2.35,
-      ),
-      Slab(
-        startInclusive: 201,
-        endInclusive: 400,
-        ratePerUnit: 4.70,
-      ),
-      Slab(
-        startInclusive: 401,
-        endInclusive: 500,
-        ratePerUnit: 6.30,
-      ),
+      Slab(startInclusive: 1, endInclusive: 100, ratePerUnit: 0.00, isSubsidised: true),
+      Slab(startInclusive: 101, endInclusive: 200, ratePerUnit: 2.35),
+      Slab(startInclusive: 201, endInclusive: 400, ratePerUnit: 4.70),
+      Slab(startInclusive: 401, endInclusive: 500, ratePerUnit: 6.30),
+      Slab(startInclusive: 501, endInclusive: 600, ratePerUnit: 8.40),
+      Slab(startInclusive: 601, endInclusive: 800, ratePerUnit: 9.45),
+      Slab(startInclusive: 801, endInclusive: 9999, ratePerUnit: 10.50),
     ],
     fixedCharge: 0,
   );
